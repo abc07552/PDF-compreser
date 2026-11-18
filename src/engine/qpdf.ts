@@ -1,3 +1,4 @@
+import { assetUrl } from '../assets';
 interface Wasm {
   callMain(args: string[]): number;
   FS: {
@@ -11,11 +12,11 @@ let errors: string[] = [],
   stdout: string[] = [];
 async function getModule() {
   if (!instance) {
-    const url = new URL('/vendor/qpdf.mjs', self.location.origin).href;
+    const url = assetUrl('vendor/qpdf.mjs');
     instance = import(/* @vite-ignore */ url).then(({ default: factory }) =>
       factory({
         noInitialRun: true,
-        locateFile: () => '/vendor/qpdf.wasm',
+        locateFile: () => assetUrl('vendor/qpdf.wasm'),
         print: (s: string) => {
           if (stdout.length < 10) stdout.push(s);
         },

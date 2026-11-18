@@ -10,7 +10,7 @@ export default defineConfig({
   workers: 1,
   timeout: 60000,
   expect: { timeout: 10000 },
-  reporter: 'list',
+  reporter: process.env.CI ? [['list'], ['github']] : 'list',
   use: {
     serviceWorkers: 'block',
     baseURL: 'http://localhost:4198',
@@ -38,8 +38,8 @@ export default defineConfig({
     },
     {
       command:
-        'npm run build && node node_modules/vite/bin/vite.js preview --host 0.0.0.0 --port 4199 --strictPort',
-      url: 'http://localhost:4199',
+        'npm run build && node node_modules/vite/bin/vite.js preview --base /PDF-compreser/ --host 0.0.0.0 --port 4199 --strictPort',
+      url: 'http://localhost:4199/PDF-compreser/',
       reuseExistingServer: !process.env.CI,
       timeout: 100000,
     },

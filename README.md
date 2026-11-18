@@ -4,6 +4,8 @@ An Android-first, offline PDF compression studio with a **Kotlin / Jetpack Compo
 
 ![Compression studio with its local engine, file workspace, presets, and storage statistics](docs/studio.webp)
 
+**Browser site:** [PDF Reducer Studio](https://abc07552.github.io/PDF-compreser/) · [Enable GitHub Pages / deployment guide](docs/PAGES.md). The site is available once the repository owner enables `main` → `/docs`.
+
 ## Try it in a minute
 
 1. Open **Compression studio** and choose **Try a sample** or **Browse files**.
@@ -46,7 +48,7 @@ npm run build
 npm run preview
 ```
 
-Serve `dist/` at the **root of an HTTPS origin** (localhost also works). Open it online once so the service worker can finish caching the bundled engines, fonts and interface. Chrome’s **Install app / Add to home screen** makes the workspace available as an app. The development server intentionally does not install a service worker. Do not deploy the development server or open `index.html` using `file://`.
+Serve `dist/` at the root or a project subdirectory of an **HTTPS origin** (localhost also works). Open it online once so the service worker can finish caching the bundled engines, fonts and interface. Chrome’s **Install app / Add to home screen** makes the workspace available as an app. The development server intentionally does not install a service worker. Do not deploy the development server or open `index.html` using `file://`.
 
 ## What works
 
@@ -101,6 +103,7 @@ docs/                            Install guide, engine design, privacy and QA re
 | --- | --- |
 | `npm run check` | Strict TypeScript and code-format checks. |
 | `npm test` | Generates the test corpus, builds the production app, exercises actual browser workers and the offline UI. |
+| `npm run pages:build` | Refreshes the prebuilt GitHub Pages site in `docs/`, leaving the installation and verification guides intact. |
 | `npm run android:sync` | Rebuilds and copies **all** runtime assets into the native app, with no CDN dependencies. |
 | `npm run package:source` | Creates `deliverables/PDF-MB-Reducer-AI-PRO-source.zip` and a SHA-256 checksum, excluding credentials, caches and user documents. |
 

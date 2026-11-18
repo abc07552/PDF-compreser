@@ -7,7 +7,7 @@
 | `npm run check` | Passed strict type checking, unused-import checks and source formatting. |
 | `npm run build` | Passed; creates the complete static application and versioned offline asset cache. |
 | `npm test` | **35 passed:** 25 engine cases and 10 workspace/integration cases. [Full test run](test-run.txt). |
-| Offline reload, sample analysis and compression | Passed with the browser network disabled after initial installation. |
+| Offline reload, sample analysis and compression | Passed under the GitHub Pages project path `/PDF-compreser/` with the browser network disabled after initial installation. The PWA scope, launch URL and cached asset URLs were checked. |
 | Responsive layouts | Passed at 320×640, 360×800, 412×915, 768×1024 and 915×412 CSS pixels. These are browser viewport tests, **not physical-device tests**. |
 | `npm audit --omit=dev` | No reported production npm dependency advisories at verification time. This is not a security certification. |
 | Android APK compile, instrumentation and signing | **Not executed here:** no JDK, Android SDK or emulator was installed. The Gradle project, native tests, CI workflow and signing instructions are provided. |

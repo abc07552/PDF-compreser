@@ -1,0 +1,16 @@
+import{c as j,r,j as e,M as p,C as g,f as m,N as w,L as C}from"./index-oC85BNN_.js";import{openForViewing as N,renderPage as y}from"./render-CaiXw3bK.js";/**
+ * @license lucide-react v0.468.0 - ISC
+ *
+ * This source code is licensed under the ISC license.
+ * See the LICENSE file in the root directory of this source tree.
+ */const M=j("ChevronLeft",[["path",{d:"m15 18-6-6 6-6",key:"1wnfg3"}]]);/**
+ * @license lucide-react v0.468.0 - ISC
+ *
+ * This source code is licensed under the ISC license.
+ * See the LICENSE file in the root directory of this source tree.
+ */const P=j("Minus",[["path",{d:"M5 12h14",key:"1ays0h"}]]);/**
+ * @license lucide-react v0.468.0 - ISC
+ *
+ * This source code is licensed under the ISC license.
+ * See the LICENSE file in the root directory of this source tree.
+ */const k=j("Plus",[["path",{d:"M5 12h14",key:"1ays0h"}],["path",{d:"M12 5v14",key:"s699le"}]]);function v({blob:s,page:d,zoom:t,onCount:u}){const[o,h]=r.useState(null),[a,c]=r.useState(""),[n,b]=r.useState(!0),f=r.useRef(null);return r.useEffect(()=>{const i=new AbortController;let l;return h(null),b(!0),c(""),N(s,i.signal).then(x=>{l=x,i.signal.aborted?l.destroy():(h(l),u(l.numPages))}).catch(x=>{i.signal.aborted||(c(x.message),b(!1))}),()=>{i.abort(),l&&l.destroy()}},[s,u]),r.useEffect(()=>{if(!o||!f.current)return;const i=new AbortController;return b(!0),y(o,d,f.current,Math.min(2.2,window.devicePixelRatio*1.1)*t,i.signal).then(()=>{i.signal.aborted||b(!1)}).catch(l=>{i.signal.aborted||(c(l.message),b(!1))}),()=>i.abort()},[o,d,t]),e.jsxs("div",{className:"sheet",children:[a?e.jsx(w,{tone:"error",children:a}):e.jsx("canvas",{ref:f,style:{width:`${t*100}%`},"aria-label":`Document preview, page ${d}`})," ",n&&!a&&e.jsxs("span",{className:"render-loading",children:[e.jsx(C,{className:"spin",size:18})," Rendering"]})]})}function E({req:s,onClose:d}){const[t,u]=r.useState(1),[o,h]=r.useState(1),[a,c]=r.useState(1);return e.jsxs(p,{title:s.after?"Before & after":"Document preview",eyebrow:s.name,onClose:d,wide:!0,children:[e.jsxs("div",{className:"preview-toolbar",children:[e.jsxs("div",{children:[e.jsx("button",{className:"icon-button","aria-label":"Previous page",disabled:t<=1,onClick:()=>u(n=>n-1),children:e.jsx(M,{size:16})}),e.jsxs("span",{children:["Page ",e.jsx("b",{children:t})," of ",o]}),e.jsx("button",{className:"icon-button","aria-label":"Next page",disabled:t>=o,onClick:()=>u(n=>n+1),children:e.jsx(g,{size:16})})]}),e.jsxs("div",{children:[e.jsx("button",{className:"icon-button",disabled:a<=.75,"aria-label":"Zoom out",onClick:()=>c(n=>n-.25),children:e.jsx(P,{size:15})}),e.jsxs("span",{children:[Math.round(a*100),"%"]}),e.jsx("button",{className:"icon-button",disabled:a>=2,"aria-label":"Zoom in",onClick:()=>c(n=>n+.25),children:e.jsx(k,{size:15})})]})]}),e.jsxs("div",{className:`preview-grid ${s.after?"double":""}`,children:[e.jsxs("div",{children:[e.jsxs("div",{className:"preview-label",children:[s.after?"Original":"Document"," ",e.jsx("b",{children:m(s.file.size)})]}),e.jsx(v,{blob:s.file,page:t,zoom:a,onCount:h})]}),s.after&&e.jsxs("div",{children:[e.jsxs("div",{className:"preview-label",children:["Compressed ",e.jsx("b",{children:m(s.after.blob.size)})]}),e.jsx(v,{blob:s.after.blob,page:t,zoom:a,onCount:h})]})]})]})}export{E as default};

@@ -1,3 +1,4 @@
+import { assetUrl } from '../assets';
 import { runJob } from './client';
 import type { PDFDocumentProxy } from 'pdfjs-dist';
 import { zipSync } from 'fflate';
@@ -15,17 +16,17 @@ import {
 export async function openForViewing(blob: Blob, signal?: AbortSignal): Promise<PDFDocumentProxy> {
   if (blob.size > MAX_FILE) throw Error('Preview supports files up to 64 MB.');
   const pdfjs = await import('pdfjs-dist');
-  pdfjs.GlobalWorkerOptions.workerSrc = '/vendor/pdf.worker.min.mjs';
+  pdfjs.GlobalWorkerOptions.workerSrc = assetUrl('vendor/pdf.worker.min.mjs');
   signal?.throwIfAborted();
   const bytes = await blob.arrayBuffer();
   signal?.throwIfAborted();
   const task = pdfjs.getDocument({
     data: bytes,
-    cMapUrl: '/vendor/cmaps/',
+    cMapUrl: assetUrl('vendor/cmaps/'),
     cMapPacked: true,
-    standardFontDataUrl: '/vendor/standard_fonts/',
-    wasmUrl: '/vendor/wasm/',
-    iccUrl: '/vendor/iccs/',
+    standardFontDataUrl: assetUrl('vendor/standard_fonts/'),
+    wasmUrl: assetUrl('vendor/wasm/'),
+    iccUrl: assetUrl('vendor/iccs/'),
     isEvalSupported: false,
     enableXfa: false,
     useSystemFonts: false,

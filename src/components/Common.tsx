@@ -1,3 +1,4 @@
+import { assetUrl } from '../assets';
 import { useEffect, useId, useRef, useState, type ReactNode } from 'react';
 import {
   ArrowDownToLine,
@@ -20,7 +21,7 @@ import { exportOutput } from '../storage';
 export function Brand() {
   return (
     <div className="brand">
-      <img src="/mark.svg" alt="" />
+      <img src={assetUrl('mark.svg')} alt="" />
       <span>
         PDF Reducer
         <small>

@@ -1,3 +1,4 @@
+import { assetUrl } from '../assets';
 import { useEffect, useRef, useState } from 'react';
 import {
   ArrowRight,
@@ -87,7 +88,7 @@ function EngineBanner() {
       </div>
       <div className="banner-art">
         <img
-          src="/art/compression-engine.webp"
+          src={assetUrl('art/compression-engine.webp')}
           alt="An exploded stack of luminous blue PDF layers"
         />
       </div>
@@ -398,7 +399,7 @@ export default function Studio({
   const sample = async () => {
     if (busy) return;
     try {
-      const res = await fetch('/sample.pdf');
+      const res = await fetch(assetUrl('sample.pdf'));
       if (!res.ok) throw Error('The bundled sample could not be opened.');
       await add([
         new File([await res.blob()], 'Paper notes - field guide.pdf', { type: 'application/pdf' }),

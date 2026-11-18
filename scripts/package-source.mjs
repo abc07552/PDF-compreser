@@ -18,7 +18,10 @@ const roots = [
   'src',
   'scripts',
   'tests',
-  'docs',
+  // Android already contains the complete runtime; do not bundle the Pages copy twice.
+  ...(await readdir('docs'))
+    .filter((name) => name.endsWith('.md') || name === 'studio.webp' || name === 'test-run.txt')
+    .map((name) => 'docs/' + name),
   'public/art/compression-engine.webp',
   'public/mark.svg',
   'public/manifest.webmanifest',

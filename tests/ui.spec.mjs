@@ -1,5 +1,5 @@
 import { test, expect } from '@playwright/test';
-const site = 'http://localhost:4199';
+const site = 'http://localhost:4199/PDF-compreser/';
 test.beforeEach(async ({ page }) => {
   await page.goto(site);
 });
@@ -68,6 +68,21 @@ test.describe('offline installation', () => {
     });
     await page.reload();
     await page.waitForFunction(() => !!navigator.serviceWorker.controller);
+    const installation = await page.evaluate(async () => {
+      const scope = (await navigator.serviceWorker.ready).scope;
+      const manifestUrl = document.querySelector('link[rel="manifest"]').href;
+      const manifest = await (await fetch(manifestUrl)).json();
+      const cacheName = (await caches.keys()).find((key) =>
+        key.startsWith('pdf-studio:' + new URL(scope).pathname + ':'),
+      );
+      const cached = await (await caches.open(cacheName)).keys();
+      return {
+        scope,
+        start: new URL(manifest.start_url, manifestUrl).href,
+        assetsInProject: cached.length > 0 && cached.every((req) => req.url.startsWith(scope)),
+      };
+    });
+    expect(installation).toEqual({ scope: site, start: site, assetsInProject: true });
     await context.setOffline(true);
     await page.reload();
     await page.getByRole('button', { name: 'Try a sample' }).click();
