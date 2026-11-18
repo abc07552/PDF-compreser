@@ -3,7 +3,7 @@ import { runJob } from '../src/engine/client';
 import { defaults } from '../src/engine/types';
 import { openForViewing, exportImages, renderPage } from '../src/engine/render';
 import { unzipSync } from 'fflate';
-import { PDFDocument, PDFName, PDFRawStream } from 'pdf-lib';
+import { PDFArray, PDFDocument, PDFName, PDFRawStream, decodePDFRawStream } from 'pdf-lib';
 const files = () => Array.from(document.getElementById('files').files);
 let output;
 const progress = [];
@@ -103,6 +103,25 @@ window.lab = {
       tool: 'from-images',
       files: [new File(['bad image'], 'image.png')],
       options: {},
+    });
+  },
+  // Inspect only the generated text fixture's ordinary RGB fill operators. Font
+  // rasterizers can introduce colored subpixels even when the saved paint is neutral.
+  async fixtureTextFills(original) {
+    const blob = original ? files()[0] : output.blob;
+    const doc = await PDFDocument.load(await blob.arrayBuffer(), { updateMetadata: false });
+    return doc.getPages().flatMap((page) => {
+      const streams = page.node.Contents();
+      const refs = streams instanceof PDFArray ? streams.asArray() : [streams];
+      return refs.flatMap((ref) => {
+        const stream = doc.context.lookup(ref);
+        if (!(stream instanceof PDFRawStream)) return [];
+        const instructions = new TextDecoder().decode(decodePDFRawStream(stream).decode());
+        return Array.from(
+          instructions.matchAll(/(?:^|\s)([\d.]+)\s+([\d.]+)\s+([\d.]+)\s+rg\b/g),
+          (m) => m.slice(1).map(Number),
+        );
+      });
     });
   },
   async hasColor(original) {

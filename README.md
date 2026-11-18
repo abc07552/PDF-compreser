@@ -18,6 +18,8 @@ An Android-first, offline PDF compression studio with a **Kotlin / Jetpack Compo
 
 ### Android phone
 
+For a test install without building locally, open the latest successful [Android build in Actions](https://github.com/abc07552/PDF-compreser/actions/workflows/verify.yml), download **PDF-Reducer-installable-debug-APK** from **Artifacts**, and extract `app-debug.apk`. GitHub may require sign-in to download an artifact. This is a development-signed test build, not a production release.
+
 The [beginner Android installation guide](docs/ANDROID.md) covers Android Studio, APK installation, signing a release, and building an AAB. The source archive includes the **prebuilt offline workspace**, so Android Studio can open its `android/` directory directly without installing Node first.
 
 For a fresh Git checkout, prepare the assets and build an installable debug APK:
@@ -116,4 +118,4 @@ On Linux x86-64 the tests use a pinned, npm-distributed headless Chromium. On ma
 - [Privacy, retention, sharing and security model](docs/PRIVACY.md)
 - [Dependency licenses and notices](THIRD_PARTY_NOTICES.md)
 
-The web build and PDF processing tests were run in this environment. The Android source, wrapper, instrumentation tests and CI workflow are included; **an Android SDK/emulator was not available here, so no locally verified or signed APK is claimed**. Build, run the native tests and verify a signed release on a device before distribution.
+The production web build and PDF processing tests passed locally. [GitHub’s Android build](https://github.com/abc07552/PDF-compreser/actions/runs/44268047786/job/134677381984) also passed release lint, compiled debug and unsigned release APKs, and uploaded an installable debug APK. Instrumentation was compiled, not executed on a device in that run. Run the native tests and verify an owner-signed release on a device before production distribution.

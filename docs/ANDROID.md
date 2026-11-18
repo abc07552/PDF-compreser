@@ -65,7 +65,7 @@ Alternatively, copy that APK to the phone and open it in the Files app. If Andro
 5. Build with `./gradlew :app:assembleRelease :app:bundleRelease`. APKs are under `app/build/outputs/apk/release/`; the AAB is under `app/build/outputs/bundle/release/`. **Without a signing configuration, release output is unsigned**, not ready to install.
 6. Verify with your installed Build Tools’ `apksigner verify --verbose` against the actual release APK. Install the signed build, switch to airplane mode and complete the [device release checklist](VERIFICATION.md#device-release-checklist).
 
-The included CI workflow builds debug and unsigned release variants and publishes a debug APK **when run in a configured repository**. Manual workflow dispatch also runs the emulator instrumentation suite. A workflow definition is not evidence that a remote build has already passed.
+The [verified Android CI build](https://github.com/abc07552/PDF-compreser/actions/runs/44268047786/job/134677381984) compiled debug and unsigned release variants and uploaded the debug APK. To download a test APK, sign in to GitHub, open a successful run on the [Actions page](https://github.com/abc07552/PDF-compreser/actions/workflows/verify.yml), select **PDF-Reducer-installable-debug-APK** under **Artifacts**, and extract the ZIP. Use the phone installation instructions in step 4. Artifacts expire; subsequent successful builds provide new downloads. A manual workflow dispatch also runs emulator instrumentation; the standard build alone does not test on a device.
 
 ## Troubleshooting
 

@@ -150,8 +150,12 @@ test('monochrome converts basic vector colors without flattening text', async ({
   const before = await page.evaluate(() => lab.inspect(true));
   await page.evaluate(() => lab.compress({ preset: 'Custom', color: 'Grayscale' }));
   expect(await page.evaluate(() => lab.inspect())).toEqual(before);
-  expect(await page.evaluate(() => lab.hasColor(true))).toBe(true);
-  expect(await page.evaluate(() => lab.hasColor(false))).toBe(false);
+  expect(await page.evaluate(() => lab.fixtureTextFills(true))).toEqual(
+    Array(3).fill([0.8, 0.15, 0.3]),
+  );
+  expect(await page.evaluate(() => lab.fixtureTextFills(false))).toEqual(
+    Array(3).fill([0.299, 0.299, 0.299]),
+  );
 });
 test('resamples an actual DCT-encoded image to the requested DPI budget', async ({ page }) => {
   await select(page, 'jpeg-scan');

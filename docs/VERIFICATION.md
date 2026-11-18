@@ -10,7 +10,8 @@
 | Offline reload, sample analysis and compression | Passed under the GitHub Pages project path `/PDF-compreser/` with the browser network disabled after initial installation. The PWA scope, launch URL and cached asset URLs were checked. |
 | Responsive layouts | Passed at 320×640, 360×800, 412×915, 768×1024 and 915×412 CSS pixels. These are browser viewport tests, **not physical-device tests**. |
 | `npm audit --omit=dev` | No reported production npm dependency advisories at verification time. This is not a security certification. |
-| Android APK compile, instrumentation and signing | **Not executed here:** no JDK, Android SDK or emulator was installed. The Gradle project, native tests, CI workflow and signing instructions are provided. |
+| Android compile and lint | [GitHub Actions Android job](https://github.com/abc07552/PDF-compreser/actions/runs/44268047786/job/134677381984) passed `lintRelease`, `assembleDebug`, `assembleRelease` and `assembleDebugAndroidTest`. A development-signed APK was uploaded to the run. |
+| Device instrumentation and production signing | **Not executed** in the reported run. The emulator tests and release signing instructions are provided. |
 
 ## Measured compression examples
 
