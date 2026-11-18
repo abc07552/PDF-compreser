@@ -1,0 +1,6 @@
+qpdf 12.2.0
+Copyright (c) 2005-2021 Jay Berkenbilt
+Copyright (c) 2022-2025 Jay Berkenbilt and Manfred Holger
+Licensed under the Apache License, Version 2.0 (see vendor/licenses/pdfjs.txt for the full Apache-2.0 text).
+The WASM wrapper is provided by @neslinesli93/qpdf-wasm, ISC license.
+Local modifications to the generated wrapper add an ES module export and redirect print/printErr to in-memory diagnostic callbacks. The upstream WASM binary is unmodified.

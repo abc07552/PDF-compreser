@@ -1,0 +1,8 @@
+node_modules
+dist
+public/vendor
+android/app/src/main/assets
+.artifacts
+test-results
+package-lock.json
+deliverables
