@@ -1,0 +1,15 @@
+node_modules/
+dist/
+public/vendor/
+public/sample.pdf
+android/app/src/main/assets/workspace/
+android/local.properties
+.gradle/
+**/build/
+*.jks
+*.keystore
+keystore.properties
+test-results/
+playwright-report/
+.artifacts/
+.DS_Store
