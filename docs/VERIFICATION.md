@@ -1,63 +1,53 @@
-# Verification report
+# ULTRA V6 verification
 
-**Executed 18 November 2026.** Linux x86-64, Node.js 22.22.3, TypeScript 5.9.3, headless Chromium 143, Playwright 1.58.2, and qpdf 12.2.0 WebAssembly. The engine tests use real documents and workers; the interface tests use a production build. No compression service or mocked compression response is used.
+This report covers the V6 application at [`29960a8`](https://github.com/abc07552/PDF-compreser/commit/29960a806eb66053602d51bbceadeb1613651d48) and the API 36 verification configuration at [`2cb0240`](https://github.com/abc07552/PDF-compreser/commit/2cb0240ad2fca8e390bc746b1ba350b09e76e287). Only the CI configuration changed between those commits. The batch regression test checks that the displayed KB/MB value updates immediately and an invalid draft still disables compression after a resize.
 
-| Check | Result in this environment |
+| Check | Observed result |
 | --- | --- |
-| `npm run check` | Passed strict type checking, unused-import checks and source formatting. |
-| `npm run build` | Passed; creates the complete static application and versioned offline asset cache. |
-| `npm test` | **35 passed:** 25 engine cases and 10 workspace/integration cases. [Full test run](test-run.txt). |
-| Offline reload, sample analysis and compression | Passed under the GitHub Pages project path `/PDF-compreser/` with the browser network disabled after initial installation. The PWA scope, launch URL and cached asset URLs were checked. |
-| Responsive layouts | Passed at 320×640, 360×800, 412×915, 768×1024 and 915×412 CSS pixels. These are browser viewport tests, **not physical-device tests**. |
-| `npm audit --omit=dev` | No reported production npm dependency advisories at verification time. This is not a security certification. |
-| Android compile and lint | [GitHub Actions Android job](https://github.com/abc07552/PDF-compreser/actions/runs/44268047786/job/134677381984) passed `lintRelease`, `assembleDebug`, `assembleRelease` and `assembleDebugAndroidTest`. A development-signed APK was uploaded to the run. |
-| Device instrumentation and production signing | **Not executed** in the reported run. The emulator tests and release signing instructions are provided. |
+| Local `npm run check` / production build | Strict TypeScript and formatting passed. Vite generated the complete production application, PDF worker, archive worker, renderer, sample library and offline cache. |
+| Local `npm test` | **50/50 passed**: 29 engine and 21 workspace tests in Chromium 143, using real workers/files and the production web app under `/PDF-compreser/`. [Full output](test-run.txt). |
+| Offline and distributions | The 246 production files match byte-for-byte in `dist/`, Pages and the bundled Android workspace. We also extracted that workspace from the source ZIP, served it with Python’s static server, reloaded offline and compressed the Alpine report. The downloaded 163,324-byte output reopened with five pages. No public Pages deployment is claimed. |
+| Production npm dependency audit | `npm audit --omit=dev` reported zero vulnerabilities at the time of the check. Not a security certification. |
+| Hosted engine and web suite | **50/50 passed** in the [V6 engine CI job](https://github.com/abc07552/PDF-compreser/actions/runs/44451793611/job/135317281627) with the Playwright-pinned Chromium (2.5 minutes for the tests). |
+| Android compile and lint | [V6 hosted Android job](https://github.com/abc07552/PDF-compreser/actions/runs/44451793611/job/135317281499) passed `:app:lintRelease`, `:app:assembleDebug`, `:app:assembleRelease` and `:app:assembleDebugAndroidTest`. |
+| Installable test artifact | [`PDF-Reducer-ULTRA-V6-debug-APK`](https://github.com/abc07552/PDF-compreser/actions/runs/44451793611/artifacts/14495713438), artifact ID `14495713438`. Extract `app-debug.apk`. Development key, **not** an owner-signed distribution release. |
+| Android 36 baseline | **5 passed, 2 skipped** on the [API 36 emulator](https://github.com/abc07552/PDF-compreser/actions/runs/44451793611/job/135317281684). SQLite v1 migration, metadata round-trip, private file storage, stale export cleanup and the no-INTERNET permission check passed. The provider was `com.google.android.webview` **133.0.6943.137**, below the required 143. Both the offline compression/rotation case and the compact→medium→expanded live-window case **skipped**. [Device test reports](https://github.com/abc07552/PDF-compreser/actions/runs/44451793611/artifacts/14496730081). |
 
-## Measured compression examples
+The APK **artifact ZIP** is 14,508,337 bytes; the digest reported by the Actions API is `sha256:3a7b54e821010ec536844504e29358c3b1fd3c5830677721f5220c8ccdeba458`. This is not a signature or the checksum of the inner APK.
 
-Actual byte counts below were measured with this engine. The corpus is generated test material, including intentionally uncompressed image data. **These ratios are not representative promises about customer documents.** Photographs already encoded as optimized JPEGs, JBIG2 scans and mostly-vector documents can shrink very little.
+The [API 37.2 (16 KiB)](https://github.com/abc07552/PDF-compreser/actions/runs/44448573577/job/135306735381) and [API 37.0 (standard Google APIs)](https://github.com/abc07552/PDF-compreser/actions/runs/44450215347/job/135312011820) emulator jobs timed out during boot. **No application test ran on either image**: the rotation and live-window UI cases neither passed nor skipped there. The hosted baseline is pinned to API 36 instead of advancing to an untested image automatically.
 
-| Fixture | Pages | Input bytes | Output bytes | Winning strategy |
-| --- | ---: | ---: | ---: | --- |
-| Bundled field guide: illustration, text and link | 2 | 1,969,629 | 9,105 | Lossless structure |
-| Text, different page dimensions, link, rotated page | 3 | 2,504 | 1,354 | Lossless structure |
-| Synthetic raster scan | 1 | 2,521,254 | 12,887 | High; one image optimized |
-| Image-heavy fixture | 1 | 678,050 | 7,159 | Extreme; four images optimized |
-| Large multi-page image document | 10 | 31,463,132 | 150,265 | High; ten images optimized |
-| Compact valid PDF | 1 | 324 | 324 | Original retained byte-for-byte |
+### Worked output, not a promise
 
-### What is asserted
+The shipping **Alpine Field Report** has five pages, vector text and a deliberately uncompressed photographic stream. The default Smart Auto profile with a 500 KB maximum produced **2,372,269 → 163,324 bytes**, saving 2,208,945 bytes (93.1%). The exported PDF reopened with five pages. The inspector found matching text and geometry and a 0.14% mean sampled RGB difference on its cover in this run. This measures that page’s reduced previews, not perceptual readability, universal compression ratios or an OCR score.
 
-- The mixed-document output keeps page count, geometry, rotation, extracted text and link URLs. A rendered-pixel error bound is checked; text-only rendering has zero pixel difference on its comparison page.
-- A real DCT/JPEG image is downsampled from 1,440×960 to 480×320 at the Extreme preset. A PNG Sub-predictor image produces an actual 1-bit Flate image in black-and-white mode. A transparent image with a soft mask remains visually identical.
-- A deliberately unattainable 100-byte target returns a verified file with `targetMet: false` after three image passes. An already-small input does not grow.
-- The 30 MiB fixture completes. An input exceeding 64 MiB is rejected, and explicit cancellation terminates its worker. This is not a peak-RSS benchmark on every Android device.
-- Non-PDF bytes, corrupt structure, protected documents and detected signatures do not enter the ordinary compression path as editable PDFs.
-- Encryption/decryption round-trips, encrypted object streams, wrong password and absent authorization are tested. Range parsing, merge order, ZIP splits, extraction, rotation, watermark text, metadata erasure, PDF/image conversion and preview are exercised.
-- End-to-end tests inspect a result, navigate comparison pages, download a PDF, reload persisted metadata, opt out of history, clear history and compress a batch with a custom target.
+### Covered scenarios
 
-## Reproduce
+- Real text, raster scans, mixed/image-heavy PDFs, a 30 MiB ten-page input, already compact, corrupt, non-PDF, encrypted and detected signed inputs. Worker cancellation and rejection above the 64 MiB input cap. Selectable text, URLs, page sizes and rotations checked on controlled fixtures, with decoded output streams and rendered pixels where appropriate.
+- An impossible target reports a miss. Exact retries remain bounded; Clarity First maintains its quality floors. A 1000 MB requested maximum does not inflate the file. Government Form keeps an actual AcroForm field and its value. HD clarity and scan cleanup produce distinct embedded-image digests while preserving text/geometry.
+- All twelve PDF operations. Order, per-page rotations, extracted subsets, split ZIP part counts, valid password and authorization requirements, JPEG/PNG/WebP conversions, metadata/watermarks, alpha preservation, grayscale and genuine 1-bit images.
+- Browser: actual picker/import and drop; search, sort/filter controls, star/category, durable rename/copy/delete; history migration from v1, theme and opt-out, zero personal file blobs on session-only imports. A success and a refused signed document contribute correctly to separate analytics.
+- Real linked before/after page inspection and downloads; reopened downloaded PDF and ZIP members. Personal backup/restore adds new document IDs, deduplicates history and rejects a damaged ZIP. Editor selection survives a layout transition; the separately exported edited copy has the expected rotation and page count.
+- Production size classes at **320×640, 412×915, 540×720, 720×960, 768×1024, 915×412, 1024×1366, 1280×800 and 1600×1000** CSS pixels. Tests turn pages, open full-screen preview, use the chooser and toolbox, check horizontal bounds, retain settings and check the intended layout. A 30 MiB worker run continues through desktop→tablet→phone resize and navigation. Search shortcut, keyboard panel resize, a 2× density context, 130% root font sizing and narrow split-window equivalents are included. These represent viewports, **not** certifications for specific fold hinges or physical screen-inch sizes.
+
+### Reproduce
 
 ```sh
 npm ci
 npm run check
 npm test
-# A focused group, if needed:
-npm test -- --project=engine
+# Or: npm test -- --project=engine
+# Or: npm test -- --project=workspace
 ```
 
-The fixture generator recreates local test files under `.artifacts/fixtures/`. These files and diagnostic traces are not part of the release archive. Tests start temporary servers on ports 4198 and 4199 and close them when finished. `scripts/prepare-assets.mjs` generates the public example without using a customer file.
-
-The full development dependency audit also flags a **build-time** `picomatch` advisory through Vite's glob tooling. It is not a shipped browser/Android runtime dependency. Use only trusted source/build inputs, do not deploy the dev server, and recheck dependencies before distributing a release.
+On x64 Linux the local test runner can use its bundled headless Chromium. Otherwise install the matching Playwright Chromium and, if necessary, set `BROWSER_EXECUTABLE`. Fixtures and traces stay under ignored `.artifacts/` and `test-results/`. CI installs the browser pinned by Playwright. Arena branch pushes and a manual **Verify studio and build Android** dispatch request instrumentation on a hosted emulator. The current workflow uses `system-images;android-36;google_apis;x86_64`, reports the installed WebView provider, and publishes case-level results, including skips. A missing instrumentation report fails verification.
 
 ## Device release checklist
 
-These checks require a real Android build environment. They are release gates, not claims of completed device testing.
+No physical-device or supported-WebView Android UI pass is claimed. Before distributing a release:
 
-1. Build the debug and release variants and run Android lint using the pinned Gradle wrapper. Confirm the merged manifest has no INTERNET or broad external-storage permission.
-2. Run `:app:connectedDebugAndroidTest` on a current-WebView Android emulator/device. Native tests cover SQLite insertion/erasure, temporary export cleanup, the permission boundary, sample compression and rotation. The engine smoke test skips on an outdated WebView; **a skip is not a passing device smoke test**.
-3. On a phone, test portrait/landscape and system light/dark settings, native back navigation, file picker cancellation, multi-select, password entry, save destination cancellation, and read-only sharing to another app.
-4. Test airplane-mode first launch, a 30 MiB scan, a file near the input cap, repeated cancellation/retry and behavior under memory pressure. Expect the app to refuse unsuitable files rather than promise universal large-file support.
-5. Verify saved files in an independent PDF reader. Inspect text, URLs, non-Latin embedded fonts, crop boxes, rotated pages, photos, scans, masks and any business-critical forms. Exported files should open without repair warnings.
-6. Verify unexported documents disappear after process death, filenames/history opt-out works, and expired private staging directories are cleaned on startup and by scheduled work. Ensure deliberately shared/saved files remain where the user chose.
-7. Sign with the owner's release key, verify the signature, test the minified release on a device and complete the store's privacy/Data Safety disclosures. Never ship or publish a debug-signed APK as a production release.
+1. Install the debug APK on a current WebView 143+ Android phone and tablet. Run `:app:connectedDebugAndroidTest`. The native suite exercises SQLite migrations, scoped copies, export cleanup, no INTERNET permission and a WebView compression/rotation smoke test. An additional check with `-Pandroid.testInstrumentationRunnerArguments.exerciseWindows=true` runs only on a disposable emulator: it changes the host display to compact, medium and expanded bounds within one activity session and restores the original density/size afterward. Both WebView tests explicitly skip on an older provider; a skip is not runtime verification.
+2. Test touch, portrait/landscape, the actual system picker (including cancel, multi-select, images and ZIP), full-screen comparison, back navigation, font and display-size changes, and keyboard/mouse on a wide display. Drag the multi-window divider during a job. On a foldable check both a flat and a folded posture. V6 uses available window space, not a hinge-specific dual-screen API.
+3. Test Android Save As cancellation, email/file-share targets, offline first launch, retained copies after restart, forgotten copies and confirmed deletion. Open exports in an independent reader; check business-critical forms, links, non-Latin fonts and rotated pages.
+4. Validate behavior under low memory, large near-cap PDFs, app backgrounding and process death. Running jobs and unsaved results do **not** survive process death; consented library copies do. Check WorkManager cleanup of expired temporary exports.
+5. Sign with the owner's key, verify the actual release signature, test the minified release on devices, and complete store privacy/distribution requirements. Build success alone is not a production sign-off.

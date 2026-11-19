@@ -6,6 +6,12 @@ The native Android application is written in Kotlin with a Jetpack Compose lifec
 
 PDF processing is a shared TypeScript + WebAssembly engine: **qpdf 12.2.0**, **pdf-lib**, **Mozilla PDF.js** and **fflate**. The preview is the actual processing application, not a visual replica of another product. Native APKs do not start a localhost server or load a remote website.
 
+## V6 shared state and layout
+
+The three presentation components in `src/v6/Dashboards.tsx` consume **one** `WorkspaceProvider`. No engine is owned by a panel. Selection/page, zoom, batch, settings, job controller, files, results, history and library filters stay mounted across window changes. Compact layout uses bottom navigation; two-panel layout starts at 44em of available window width, three panels at 74em and 31em of height. Short landscape windows prefer two columns. Grid tracks are flexible, the library divider is pointer/keyboard resizable, and large page lists use bounded thumbnail windows. These are window classes rather than device-model checks.
+
+SQLite (Android) and IndexedDB (web) are platform adapters for the same record model. V1 history migrates in place. Only consented library originals are durable; `.out` results are ephemeral. Read-modify-write field updates prevent a concurrent processing/open timestamp from replacing a rename. Export/backup ZIP assembly and validation run in separate, cancellable bounded workers, sharing the PDF worker lifecycle helper. A backup is explicit file transfer, not background sync between devices.
+
 ## Pipeline
 
 1. **Preflight.** Check supported extensions, file count, byte limits, header, parser validity and page count. Reject encrypted inputs for editing and reject detected signed PDFs rather than silently invalidating a signature. No password guessing.
@@ -14,7 +20,7 @@ PDF processing is a shared TypeScript + WebAssembly engine: **qpdf 12.2.0**, **p
 4. **Optimize eligible images.** Read ordinary 8-bit RGB/gray JPEG, unfiltered and Flate image XObjects. Supported PNG row predictors are decoded. Use bounded canvases, high-quality downsampling, JPEG encoding and explicit cleanup. JPEG dimensions are checked before decoding. Do not enlarge images. The DPI long-edge budget is based on the largest physical page, not an exact measurement of every nested image transform.
 5. **Color options.** Grayscale uses luminance. Black-and-white thresholds eligible raster images into packed, 1-bit DeviceGray Flate streams. Basic page RGB, CMYK and gray paint operators are neutralized without rewriting text strings, glyph positions or the active color-space family. Comments, names, string literals and inline images are not interpreted as paint commands. Specialty color spaces, shadings, appearance streams and masks are preserved, not guessed at. This is not a certified color-managed prepress converter.
 6. **Remove redundancy.** Share identical image/font programs only when both their SHA-256 content hash and stream dictionary match. Remove document metadata references; qpdf prunes unreachable objects and unused page resources, repacks object streams and recompresses eligible Flate streams. Font programs are preserved rather than blindly re-subsetted.
-7. **Retry and choose.** For an unmet target with eligible image content, a maximum of two additional progressively smaller DPI/quality attempts can run. Each reads the original, avoiding compounded JPEG degradation. Keep the smallest valid candidate without exceeding the original size. The original wins if no improvement exists. A requested color transformation can therefore be declined in favor of an unchanged original; that state is explicitly labeled.
+7. **Retry and choose.** For an unmet target with eligible image content, up to three image passes normally or five in Exact Target mode can run. Duplicate resolution/quality pairs stop early. Each reads the original, avoiding compounded JPEG degradation. Keep the smallest valid candidate without exceeding the original size. The original wins if no improvement exists. A requested color transformation can therefore be declined in favor of an unchanged original; that state is explicitly labeled.
 8. **Validate and export.** Reopen output, compare page count, dimensions and rotation, then use qpdf’s structural/stream validation. No partially written candidate is offered. Locked outputs are checked using their supplied password. Display measured bytes and achieved savings, not an estimate disguised as a result.
 
 All heavy compression/mutation happens in a **dedicated worker** with an isolated WASM filesystem. Job completion, cancellation, errors and timeout terminate the worker. Input buffers and intermediate paths are never server-side files. A batch processes sequentially. PDF.js has its own parsing worker; page previews and image exports render one requested page at a time, with cancellation and bounded canvas sizes.
@@ -24,12 +30,17 @@ All heavy compression/mutation happens in a **dedicated worker** with an isolate
 | Profile | Image resolution ceiling | JPEG quality |
 | --- | --- | --- |
 | Recommended | Scans: 150 DPI; image-heavy: 120 DPI; mixed: 180 DPI; text: structural optimization | 70% for scan/image profiles, 82% for mixed |
+| Smart Auto | Same local classifier, picks settings by content | Same adaptive quality as Recommended |
+| Clarity First | Starts at 200 DPI | Starts at 88%; retries stop at 150 DPI / 78% |
+| Government Form | Structural-only on PDFs with AcroForm; otherwise starts at 200 DPI | No raster modification on AcroForms; otherwise starts at 90%, with clarity floors |
 | Balanced | 150 DPI | 78% |
 | High | 120 DPI | 60% |
 | Extreme | 72 DPI | 38% |
 | Custom | 72, 96, 120, 150, 200 or 300 DPI | 10–100% |
 
-A target retry can go below the initial settings (not below 72 DPI / 10% quality). Disable retries to keep the initial profile. JPEG quality does not apply to 1-bit Flate output. The UI reports the selected result strategy; **lossless** can beat a lossy candidate on flat graphics.
+The independent Clarity First switch enforces the 150 DPI / 78% floor on image passes (the two protected profiles always enforce it). These are limits on resampling/quality, **not** a promise to add missing resolution. HD clarity uses a bounded four-neighbour unsharp filter; scan cleanup applies a bounded contrast adjustment. Both apply only to eligible image streams. Lossless or original bytes can still win. Government Form does not rewrite AcroForm appearances or subset fonts; the field-tree root count is checked before delivery. This is not official form certification.
+
+Without the clarity floor a target retry can go below the initial settings (not below 72 DPI / 10% quality). Disable retries to keep the initial profile. JPEG quality does not apply to 1-bit Flate output. The UI reports the selected result strategy; **lossless** can beat a lossy candidate on flat graphics.
 
 ## Tool behavior
 
@@ -39,7 +50,7 @@ A target retry can go below the initial settings (not below 72 DPI / 10% quality
 - **Protect:** AES-256 encryption with a user-supplied password (at least eight characters; maximum 127 UTF-8 bytes). **Unlock:** explicit authorization plus the correct password. Checks occur before attempting decryption. Passwords are never persisted.
 - **Watermark:** diagonal text on all pages, configurable opacity, automatically fitted width. The embedded standard font supports WinAnsi/Latin text; unsupported glyphs produce an actionable error rather than missing characters.
 - **Remove metadata:** clears Info properties and common XMP/PieceInfo references and rewrites reachable objects. Not anonymization or redaction; comments, attachments, visible identifiers and application-specific payloads can remain.
-- **Preview/compare:** render locally with linked before/after page navigation, zoom and actual sizes. Documents are not stored in history for later reopening.
+- **Preview/compare:** render locally with linked before/after page navigation, zoom and actual sizes. Per-page inspection compares the page viewport, normalized selectable text and mean RGB difference at reduced resolution. It is not OCR, a complete form validator, or a readability guarantee. Documents are not stored in history for later reopening.
 
 WebP is used for image export/input, **not** embedded as a nonstandard PDF image codec. PDF image optimization uses interoperable JPEG or Flate streams.
 
@@ -56,6 +67,8 @@ WebP is used for image export/input, **not** embedded as a nonstandard PDF image
 | Render/resample output canvas | 4 megapixels; maximum dimension 5,000 px |
 | Image ZIP export | 120 pages, 64 MiB of encoded images |
 | Split ZIP export | 200 parts, 64 MiB total parts |
+| Library budget | 64 documents / 256 MiB of source and result bytes |
+| V6 backup | Stored ZIP, up to 126 MiB of source PDFs plus bounded metadata; private data transfer, not encryption |
 | Android export staging | 48 KiB per bridge chunk; 128 MiB maximum |
 
 The UI’s KB and MB labels use 1,024-based units. Unsupported JPEG2000, JBIG2, ICC/CMYK, transparent/masked and unusual image encodings are not forcibly replaced. Some are viewable through the bundled PDF.js decoders. Preview is not a full PDF/A, XFA, 3D, embedded-JavaScript, signature or accessibility conformance validator. Oversized images can be omitted by the safety-limited preview renderer; always inspect specialty documents in their intended reader.

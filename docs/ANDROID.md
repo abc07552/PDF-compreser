@@ -1,10 +1,12 @@
-# Install on Android, step by step
+# Install PDF MB Reducer AI ULTRA V6 on Android
+
+**Fastest test install:** download the [V6 debug APK artifact](https://github.com/abc07552/PDF-compreser/actions/runs/44451793611/artifacts/14495713438), extract the artifact ZIP, copy `app-debug.apk` to the phone, and open it using Files. This route does not require Android Studio. See step 4 below for the Android install prompt. The source ZIP is for building or inspecting the app, not installing it.
 
 ## What you need
 
-- A phone running **Android 10 (API 29) or newer**. Update Android System WebView or Chrome through your normal app store. The studio requires Chromium WebView 143+ for its offline image and PDF workers.
-- A computer with Android Studio Narwhal Feature Drop (2025.1.2) or newer, a JDK 17 installation, and space for the Android SDK.
-- The project folder, either extracted from `PDF-MB-Reducer-AI-PRO-source.zip` or checked out from the repository.
+**To install the APK:** an **Android 10 (API 29) or newer** phone or tablet with **Chromium WebView 143+**. Update the selected Android System WebView or Chrome provider through your normal app store if necessary. You do not need a computer if you download and extract the build artifact on the device.
+
+**Only if building from source:** a computer with Android Studio Narwhal Feature Drop (2025.1.2) or newer, JDK 17, space for the Android SDK, and the project folder (extract `PDF-MB-Reducer-AI-ULTRA-V6-source.zip` or use a Git checkout).
 
 The project uses Gradle 8.13 (wrapper included), Android Gradle Plugin 8.11.1, Kotlin/Compose compiler 2.2.10, compile/target SDK 36, and AndroidX. No server or AI key is needed.
 
@@ -33,7 +35,7 @@ This builds the interface, worker, WASM engine, preview renderer, fonts, sample 
 1. Enable **Developer options** (tap **Build number** seven times in the phone’s settings), then enable **USB debugging**.
 2. Connect the phone with a data-capable cable. Unlock it and accept its USB debugging prompt.
 3. Select the phone in Android Studio’s device menu, then press **Run**. The studio opens on the phone.
-4. Test **Try a sample → Compress PDFs → Compare → Download**. Choose a destination in the Android **Save as** picker. **Share** opens the Android share sheet with read-only access to a temporary copy.
+4. Test **Compress → Alpine Field Report.pdf → Compress PDF → Compare → Save copy**. Choose a destination in the Android **Save as** picker. **Share** opens the Android share sheet with read-only access to a temporary copy.
 
 No broad storage permission is needed. A PDF can be selected from Downloads, Documents or another installed document provider. An external cloud provider may use its own network connection if you explicitly select it; this app does not upload the file.
 
@@ -65,7 +67,7 @@ Alternatively, copy that APK to the phone and open it in the Files app. If Andro
 5. Build with `./gradlew :app:assembleRelease :app:bundleRelease`. APKs are under `app/build/outputs/apk/release/`; the AAB is under `app/build/outputs/bundle/release/`. **Without a signing configuration, release output is unsigned**, not ready to install.
 6. Verify with your installed Build Tools’ `apksigner verify --verbose` against the actual release APK. Install the signed build, switch to airplane mode and complete the [device release checklist](VERIFICATION.md#device-release-checklist).
 
-The [verified Android CI build](https://github.com/abc07552/PDF-compreser/actions/runs/44268047786/job/134677381984) compiled debug and unsigned release variants and uploaded the debug APK. To download a test APK, sign in to GitHub, open a successful run on the [Actions page](https://github.com/abc07552/PDF-compreser/actions/workflows/verify.yml), select **PDF-Reducer-installable-debug-APK** under **Artifacts**, and extract the ZIP. Use the phone installation instructions in step 4. Artifacts expire; subsequent successful builds provide new downloads. A manual workflow dispatch also runs emulator instrumentation; the standard build alone does not test on a device.
+The [verified Android CI build](https://github.com/abc07552/PDF-compreser/actions/runs/44451793611/job/135317281499) compiled debug and unsigned release variants and uploaded the debug APK. To download a test APK, sign in to GitHub, open a successful run on the [Actions page](https://github.com/abc07552/PDF-compreser/actions/workflows/verify.yml), select **PDF-Reducer-ULTRA-V6-debug-APK** under **Artifacts**, and extract the ZIP. Use the phone installation instructions in step 4. Artifacts expire; subsequent successful builds provide new downloads. The `device` job runs connected instrumentation on the pinned API 36 emulator for Arena branch pushes and manual dispatches. The separate Android compilation job alone is not a device test. Read [the verification report](VERIFICATION.md) for exactly what ran or was skipped.
 
 ## Troubleshooting
 
@@ -75,7 +77,7 @@ The [verified Android CI build](https://github.com/abc07552/PDF-compreser/action
 | “SDK location not found” | Open `android/` in Android Studio and configure the SDK, or set `ANDROID_HOME`. |
 | Gradle cannot download dependencies | Check the build computer’s network/proxy for the official Gradle, Google Maven and Maven Central repositories. |
 | WebView update message | Update the selected system WebView provider, then fully reopen the app. |
-| Installation reports conflicting signatures | Use the same signing key as the installed app. Uninstalling removes its local history, so do not uninstall casually. |
+| Installation reports conflicting signatures | Use the same signing key as the installed app. Uninstalling removes private library copies, preferences and history. Export a V6 backup and all needed results first; never uninstall casually. |
 | Target cannot be reached | Inspect the result. Reduce image DPI/quality if acceptable; vector/text PDFs may have little room to shrink. |
 | Protected PDF | Use **Unlock PDF** only with authorization and the correct password. Forgotten passwords cannot be recovered. |
 | Memory/time limit | Use a smaller document or fewer files. The app does not silently upload large jobs to a server. |

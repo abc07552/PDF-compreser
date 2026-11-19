@@ -1,121 +1,71 @@
-# PDF MB Reducer AI PRO
+# PDF MB Reducer AI ULTRA V6 — Universal Responsive Edition
 
-An Android-first, offline PDF compression studio with a **Kotlin / Jetpack Compose Android host**, a shared responsive workspace, and a real local PDF engine. No account, API key, document upload, backend or paid runtime service is required.
+A local PDF workspace for **Android 10+** (Kotlin / Jetpack Compose host) and **desktop, tablet or phone browsers** (an installable web app). Opening a file does not upload it. The six Northline starter documents are real, bundled example PDFs; the preview, processing results, analytics and exports are live.
 
-![Compression studio with its local engine, file workspace, presets, and storage statistics](docs/studio.webp)
+![V6 desktop workspace rendering the Alpine Field Report with library and compression controls](docs/studio.webp)
 
-**Browser site:** [PDF Reducer Studio](https://abc07552.github.io/PDF-compreser/) · [Enable GitHub Pages / deployment guide](docs/PAGES.md). The site is available once the repository owner enables `main` → `/docs`.
+## Get started
 
-## Try it in a minute
+- **Android test APK:** [Download the V6 build artifact](https://github.com/abc07552/PDF-compreser/actions/runs/44451793611/artifacts/14495713438) from the [successful Android build](https://github.com/abc07552/PDF-compreser/actions/runs/44451793611/job/135317281499). Sign in to GitHub if requested, extract the artifact ZIP and install `app-debug.apk`. It is development-signed, not a store release. See [beginner install, build and signing instructions](docs/ANDROID.md).
+- **V6 source and prebuilt desktop site:** [Download the V6 source ZIP](deliverables/PDF-MB-Reducer-AI-ULTRA-V6-source.zip). It contains the project, Android Gradle wrapper, tests, guides and the ready-to-serve offline workspace. It is **not** an APK. The [SHA-256 checksum](deliverables/SHA256SUMS.txt) is for this source ZIP, not the Android build.
+- **Desktop/tablet browser:** with Node 22.12+ installed, run `npm ci`, `npm run build`, then `npm run preview`. Open the printed address in current Chromium. In Chrome, use **Install app** when offered. The PWA is the desktop platform; there is no native Windows/macOS executable. [Static hosting and Pages instructions](docs/PAGES.md).
 
-1. Open **Compression studio** and choose **Try a sample** or **Browse files**.
-2. Leave the preset on **Recommended**. The analyzer identifies the document type and shows an estimated size range. Expand **Compare compression profiles** to see different quality/size trade-offs.
-3. Select **Compress PDFs**. Choose **Compare** to inspect corresponding pages, then **Download** or **Share** to keep the result.
+**Desktop without rebuilding:** the V6 source ZIP already contains a static site. Extract it, open a terminal in `android/app/src/main/assets/workspace/`, run `python -m http.server 8080 --bind 127.0.0.1` with Python 3, and open `http://localhost:8080/` in Chromium. No APK, Android emulator or account is needed. Open the app over localhost/HTTPS, not by double-clicking `index.html`.
 
-**A target is a preference, not a guarantee.** The compressor never replaces the original file. If no smaller valid candidate is found, it returns the original bytes and says so. Results must be saved before closing the workspace.
+**First compression:** on a phone tap **Compress**; on a wider window use the open workspace. Select *Alpine Field Report.pdf* or import your own PDF. Enter a maximum size (KB or MB), choose **Smart Auto**, then **Compress PDF**. **Compare** renders both copies and checks the selected page. Choose **Save copy**, or **Share** where file sharing is supported. Save results before closing the app.
 
-## Get the application
+## One model, three layouts
 
-### Android phone
+| Available space | Presentation |
+| --- | --- |
+| Compact | Home dashboard with recent PDFs, savings, quick compression, Clarity First and batch entry; bottom navigation for Home, Compress, PDF Tools, History and Settings. Compression and full-screen preview are one tap away. |
+| Medium / short landscape | Resizable library beside a selected-document column containing preview, editing, compression and delivery. |
+| Expanded | Three simultaneous panels: library, PDF workspace and compression/delivery. Keyboard search, page navigation, drag/drop, zoom and visual page editing. |
 
-For a test install without building locally, open the latest successful [Android build in Actions](https://github.com/abc07552/PDF-compreser/actions/workflows/verify.yml), download **PDF-Reducer-installable-debug-APK** from **Artifacts**, and extract `app-debug.apk`. GitHub may require sign-in to download an artifact. This is a development-signed test build, not a production release.
+Layout is selected from **window space**, not user-agent or device name. The provider holding files, results, batch selection, page/zoom, settings, library filters and running workers lives above all three presentations. Android orientation and multi-window changes resize the same WebView. Device/OS process death is different from resizing: unsaved session data is lost. Libraries are local to a browser profile or Android install, not automatically synchronized between devices.
 
-The [beginner Android installation guide](docs/ANDROID.md) covers Android Studio, APK installation, signing a release, and building an AAB. The source archive includes the **prebuilt offline workspace**, so Android Studio can open its `android/` directory directly without installing Node first.
+## What V6 does
 
-For a fresh Git checkout, prepare the assets and build an installable debug APK:
+- **Document library:** import, drop, search, sort, category filters, starred files, recent selections, rendered covers, size/page count, text-layer detection and processed status. Document actions include rename, copy, save/forget a private copy, export, supported share and confirmed removal. Originals are not overwritten.
+- **Compression:** 1 KB–1000 MB targets (1,024-based units), Auto, unit conversion and legacy quick sizes. Smart Auto classifies the PDF; Clarity First protects resolution and JPEG quality. Government Form uses structural-only packing on AcroForms. Balanced, High, Extreme, Recommended and Custom DPI/quality/color remain available. Compare profile estimates under Advanced settings.
+- **Enhancement:** bounded HD sharpening or scan contrast cleanup on eligible opaque images; no page flattening or remote AI. Exact Target adds bounded retry profiles. It does **not** pad files to a byte count or guarantee a target. A result that cannot safely beat the original retains its bytes.
+- **Editing:** thumbnails, multi-select, drag or keyboard reorder, rotate, remove and extract into **new copies**. The 12-tool collection also includes merge, ZIP split, PDF↔images, authorized unlock, AES-256 protection, watermark and metadata removal. PDF tools can use library documents or new picker files.
+- **Delivery and inspection:** real worker progress and measured candidate sizes; original/output bytes, saved bytes/percentage and target outcome; linked before/after rendering and page-level geometry, selectable-text and sampled pixel comparison. Sequential batches can export completed PDFs together as a ZIP. Android uses SAF Save As and the system share sheet (including compatible email apps); supported browsers use download/Web Share. There is no unconfigured cloud or SMTP button.
+- **Local records and backup:** daily/monthly activity, successful/failed/cancelled jobs, profile counts and mean reduction. Savings exclude failed jobs. Backup/restore personal PDFs, settings and history using an explicitly exported, **unencrypted** V6 ZIP. Restore adds new copies and retains the current privacy permissions.
+
+## Privacy and limits
+
+File-byte retention is **off by default**. Use **Settings → Keep imported PDFs**, or **Document actions → Keep on this device**, to opt in. Android uses SQLite and app-private, non-backed-up files; the browser uses IndexedDB. Existing PRO history migrates without deleting records. Activity metadata has its own opt-out and confirmed clear action. See [data lifecycle and export permissions](docs/PRIVACY.md).
+
+**Input limits:** 64 MiB per PDF; 16 files / 128 MiB per batch; 1,500 pages; bounded image sizes; three-minute worker timeout. The 1000 MB target selector is not 1 GB input support. Keep the app open for processing: WorkManager cleans temporary exports, not resumable compression jobs. Text-layer detection is not OCR, HD is not a generative super-resolution model, and the app cannot recover passwords, verify digital signatures or guarantee accessibility/PDF-A compliance. Inspect important forms in their intended reader. [Engine design and limits](docs/ENGINE.md).
+
+## Build and verify
 
 ```sh
-# From the repository root. Requires Node.js 22.12+ and npm.
-npm ci
-npm run android:sync
+npm ci                     # Node.js 22.12+
+npm run dev                # development, no service worker
+npm run check              # strict TypeScript + formatting
+npm test                   # real engine + production responsive UI; ports 4198/4199
+npm run pages:build        # static build in dist/ and relocatable copy in docs/
+npm run android:sync       # stage the same offline build into the APK project
 cd android
-./gradlew :app:assembleDebug
+./gradlew :app:assembleDebug  # Windows: gradlew.bat :app:assembleDebug
 ```
 
-On Windows, use `gradlew.bat` instead of `./gradlew`. The APK is at `android/app/build/outputs/apk/debug/app-debug.apk`. Android builds require JDK 17, Android SDK platform 36 and Build Tools 35.0.0. The first build needs access to the standard Gradle, Google and Maven repositories. The installed app works offline from its **first launch**.
+The debug APK is `android/app/build/outputs/apk/debug/app-debug.apk`. Android build prerequisites: JDK 17, SDK platform 36, Build Tools 35.0.0, Gradle wrapper 8.13. The first build needs network access; the **installed Android app has no INTERNET permission** and works offline from first launch. The web app needs an initial HTTPS/localhost visit to cache its runtime. `npm run package:source` rebuilds the source delivery. [Verification results and remaining device release checks](docs/VERIFICATION.md).
 
-**Runtime:** Android 10 or later, with Android System WebView / Chrome 143 or later. There is an update explanation instead of a blank screen on unsupported WebViews.
+## Source map
 
-### Browser workspace
-
-```sh
-npm ci
-npm run dev
-```
-
-Open the address printed by Vite. Use a current Chromium browser. For a production build with offline installation:
-
-```sh
-npm run build
-npm run preview
-```
-
-Serve `dist/` at the root or a project subdirectory of an **HTTPS origin** (localhost also works). Open it online once so the service worker can finish caching the bundled engines, fonts and interface. Chrome’s **Install app / Add to home screen** makes the workspace available as an app. The development server intentionally does not install a service worker. Do not deploy the development server or open `index.html` using `file://`.
-
-## What works
-
-| Area | Implementation |
+| Path | Responsibility |
 | --- | --- |
-| Compression | Recommended, Balanced, High, Extreme and Custom; lossless candidate comparison; image resampling/re-encoding; resource deduplication and structural packing; verified output. |
-| Targets | Auto, 100/200/300/500 KB, 1/2 MB, or a custom maximum in KB. Up to two additional image-quality/DPI attempts for an unmet target, optionally disabled. |
-| Customization | 72/96/120/150/200/300 DPI; 10–100% JPEG quality; preserve color, grayscale, or black-and-white. Bilevel images use packed 1-bit lossless streams. |
-| Smart analysis | Local structural heuristics—not a cloud language model—classify likely text, scanned, image-heavy and mixed files. Preset estimates account for editable image encodings, dimensions and page sizes. |
-| Batch experience | Multiple-file picker, drag-and-drop, sequential compression, actual stage progress, cancellation, rerunning, before/after page preview, download and supported system sharing. |
-| PDF toolbox | Compress, merge, split to a ZIP, extract page ranges, organize and rotate, PDF to PNG/JPEG/WebP, images to PDF, AES-256 protect, authorized unlock, text watermark, metadata removal and preview. |
-| Dashboard | Real original/output bytes, saved bytes and percentage, cumulative savings, recent activity, searchable history, daily/monthly usage and 7/30-day activity charts. No seeded user statistics. |
-| Design | Navy/blue studio, self-hosted typography, light/dark themes, responsive phone navigation, tablet/desktop sidebar, keyboard dialogs, reduced-motion support. |
-| Privacy | Native system file picker; app-private, bounded export staging; automatic cleanup; no INTERNET permission in Android; SQLite metadata on Android, IndexedDB metadata on the web; history opt-out and erasure. |
+| `src/v6/workspace.tsx`, `types.ts` | Shared application model, document lifecycle, navigation, selection, job orchestration and preferences |
+| `src/v6/Dashboards.tsx`, `Library.tsx`, `DocumentView.tsx`, `Compression.tsx` | Phone, tablet and desktop presentations built from shared interactive panels |
+| `src/v6/Dialogs.tsx`, `Settings.tsx`, `ui.tsx`, `ultra.css` | Page editor and file actions, privacy controls, accessible UI primitives and themes |
+| `src/engine/` | Worker lifecycle, local analysis, selective image optimization/enhancement, qpdf validation, transforms and PDF.js rendering |
+| `src/storage.ts`, `src/v6/archive*` | SQLite/native or IndexedDB/browser adapters, export and bounded cancellable backup/ZIP workers |
+| `src/components/`, `src/catalog.ts` | Toolbox, comparison viewer, history and analytics |
+| `android/app/src/main/` | Compose host, native pickers, SQLite v1→v2, scoped private library, share grants and cleanup |
+| `scripts/`, `public/` | Reproducible local PDF examples, real rendered covers, vendor assets, offline build and packaging |
+| `tests/`, `android/app/src/androidTest/` | Generated PDF fixtures, engine/production UI integration and native instrumentation |
 
-## Project map
-
-```text
-android/                          Standalone Android Studio / Gradle project
-  gradlew, gradlew.bat, gradle/    Pinned Gradle wrapper
-  app/src/main/
-    AndroidManifest.xml           Offline permissions, activity, scoped FileProvider
-    java/app/pdfreducer/studio/
-      MainActivity.kt             Compose lifecycle, WebView isolation, SAF picker/export
-      ActivityStore.kt            SQLite schema and metadata operations
-      Exports.kt                  Bounded chunk writer and WorkManager cleanup
-    res/                          Icons, theme, export paths and backup restrictions
-    assets/workspace/             Generated local app and engines (included in source ZIP)
-  app/src/androidTest/            Native storage, permissions and workflow instrumentation
-src/
-  App.tsx, main.tsx, styles.css    Navigation, responsive shell, privacy and theme
-  components/                     Studio, settings, toolbox, history, analytics, comparison
-  engine/
-    client.ts, worker.ts           Cancellable worker lifecycle and message protocol
-    types.ts                      Limits, settings, ranges, estimates and result types
-    document.ts                   Parsing, classification, metadata, safe deduplication
-    images.ts, colors.ts           Bounded image optimization and basic vector color modes
-    compress.ts                   Candidate selection, target retries, output validation
-    qpdf.ts                       Private WASM filesystem and authenticated validation
-    tools.ts, render.ts            Document operations, local rendering and image export
-  storage.ts, catalog.ts           Persistence/export adapters and tool definitions
-public/                           Brand, illustration, manifest, notices, generated assets
-scripts/                          Asset assembly, fixtures, offline build and packaging
-tests/                           Browser engine/integration tests (not shipped in app)
-.github/workflows/verify.yml       Tests, Android build and optional emulator checks
-docs/                            Install guide, engine design, privacy and QA results
-```
-
-### Reproducible commands
-
-| Command | Result |
-| --- | --- |
-| `npm run check` | Strict TypeScript and code-format checks. |
-| `npm test` | Generates the test corpus, builds the production app, exercises actual browser workers and the offline UI. |
-| `npm run pages:build` | Refreshes the prebuilt GitHub Pages site in `docs/`, leaving the installation and verification guides intact. |
-| `npm run android:sync` | Rebuilds and copies **all** runtime assets into the native app, with no CDN dependencies. |
-| `npm run package:source` | Creates `deliverables/PDF-MB-Reducer-AI-PRO-source.zip` and a SHA-256 checksum, excluding credentials, caches and user documents. |
-
-On Linux x86-64 the tests use a pinned, npm-distributed headless Chromium. On macOS/Windows, run `npx playwright install chromium` once, or set `BROWSER_EXECUTABLE` to a current local Chrome executable. Dependency versions and integrity hashes are recorded in `package-lock.json`.
-
-## Verification and limitations
-
-- [Measured outputs, test coverage and release gates](docs/VERIFICATION.md)
-- [Compression algorithm, bounded-memory design and format limitations](docs/ENGINE.md)
-- [Privacy, retention, sharing and security model](docs/PRIVACY.md)
-- [Dependency licenses and notices](THIRD_PARTY_NOTICES.md)
-
-The production web build and PDF processing tests passed locally. [GitHub’s Android build](https://github.com/abc07552/PDF-compreser/actions/runs/44268047786/job/134677381984) also passed release lint, compiled debug and unsigned release APKs, and uploaded an installable debug APK. Instrumentation was compiled, not executed on a device in that run. Run the native tests and verify an owner-signed release on a device before production distribution.
+The upgrade is based on the **AI PRO** code actually present in this repository. It reuses its engine and tools; no separate V5 source tree or proprietary V5 model was available. See [third-party notices](THIRD_PARTY_NOTICES.md).
