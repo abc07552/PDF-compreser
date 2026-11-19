@@ -1,6 +1,8 @@
 package app.pdfreducer.studio
 
 import android.content.Context
+import android.content.Intent
+import android.content.pm.PackageManager
 import android.util.Base64
 import android.webkit.JavascriptInterface
 import androidx.work.OneTimeWorkRequestBuilder
@@ -21,6 +23,18 @@ class ExportCleanupWorker(context: Context, params: WorkerParameters) : Worker(c
     override fun doWork(): Result = runCatching { cleanupExports(applicationContext); Result.success() }.getOrElse { Result.retry() }
 }
 internal class StudioBridge(private val context: Context, private val store: ActivityStore, private val export: (Export) -> Unit) {
+    internal val library = PrivateLibrary(context, store)
+    @JavascriptInterface fun canShareFile(mime: String): Boolean = mime in setOf("application/pdf", "application/zip") && context.packageManager.queryIntentActivities(Intent(Intent.ACTION_SEND).setType(mime), PackageManager.MATCH_DEFAULT_ONLY).isNotEmpty()
+    @JavascriptInterface fun libraryRecords(): String = store.records()
+    @JavascriptInterface fun patchLibraryRecord(base: String, delta: String): Boolean = store.patchRecord(base,delta)
+    @JavascriptInterface fun saveLibraryRecord(json: String): Boolean = store.putRecord(json)
+    @JavascriptInterface fun removeLibraryRecord(id: String): Boolean = library.remove(id)
+    @JavascriptInterface fun beginLibraryFile(id: String): Boolean = library.begin(id)
+    @JavascriptInterface fun appendLibraryChunk(data: String): Boolean = library.append(data)
+    @JavascriptInterface fun finishLibraryFile(meta: String): Boolean = library.finish(meta)
+    @JavascriptInterface fun abortLibraryFile() = library.abort()
+    @JavascriptInterface fun setting(key: String): String = store.setting(key)
+    @JavascriptInterface fun setSetting(key: String, value: String): Boolean = store.setSetting(key, value)
     private var stream: FileOutputStream? = null
     private var staged: Export? = null
     private var size = 0L

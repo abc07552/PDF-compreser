@@ -5,8 +5,8 @@ import { validateSelection, type Job } from './types';
 self.onmessage = async (e: MessageEvent<Job>) => {
   try {
     const job = e.data,
-      progress = (percent: number, stage: string) =>
-        self.postMessage({ type: 'progress', percent, stage });
+      progress = (percent: number, stage: string, candidate?: number) =>
+        self.postMessage({ type: 'progress', percent, stage, candidate });
     let result;
     if (job.type === 'analyze') {
       validateSelection([job.file]);

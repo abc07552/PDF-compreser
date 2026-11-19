@@ -4,6 +4,7 @@ import { Component, type ReactNode } from 'react';
 import App from './App';
 import { preference } from './storage';
 import './styles.css';
+import './v6/ultra.css';
 class Boundary extends Component<{ children: ReactNode }, { failed: boolean }> {
   state = { failed: false };
   static getDerivedStateFromError() {
@@ -24,7 +25,7 @@ class Boundary extends Component<{ children: ReactNode }, { failed: boolean }> {
     );
   }
 }
-document.documentElement.dataset.theme = preference('theme', 'light');
+document.documentElement.dataset.theme = preference('theme', 'dark');
 createRoot(document.getElementById('root')!).render(
   <Boundary>
     {window.isSecureContext &&

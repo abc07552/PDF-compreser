@@ -3,7 +3,16 @@ export const MAX_FILE = 64 * MB,
   MAX_BATCH = 128 * MB,
   MAX_FILES = 16,
   MAX_PAGES = 1500;
-export type Preset = 'Recommended' | 'Balanced' | 'High' | 'Extreme' | 'Custom';
+export type Preset =
+  | 'Recommended'
+  | 'Balanced'
+  | 'High'
+  | 'Extreme'
+  | 'Custom'
+  | 'Smart Auto'
+  | 'Clarity First'
+  | 'Government Form';
+export type Enhancement = 'Off' | 'HD clarity' | 'Scan cleanup';
 export type DocumentKind =
   | 'Text document'
   | 'Scanned document'
@@ -17,6 +26,9 @@ export interface Settings {
   quality: number;
   color: ColorMode;
   retry: boolean;
+  clarity?: boolean;
+  exact?: boolean;
+  enhancement?: Enhancement;
 }
 export const defaults: Settings = {
   preset: 'Recommended',
@@ -33,12 +45,21 @@ export interface Analysis {
   recommended: string;
   signed: boolean;
   oversizedImages: boolean;
+  sampledText?: boolean;
   imageBudget: { eligible: number; atDpi: Record<number, number> };
 }
 export interface Report {
   original: number;
   output: number;
   attempts: number;
+  dpi?: number;
+  quality?: number;
+  enhanced?: number;
+  clarityProtected?: boolean;
+  requestedTarget?: number;
+  requestedProfile?: Preset;
+  color?: ColorMode;
+  formProtected?: boolean;
   unchanged: boolean;
   imagesOptimized: number;
   targetMet: boolean;
@@ -80,7 +101,7 @@ export type Job =
   | { type: 'analyze'; file: File }
   | { type: 'compress'; file: File; settings: Settings }
   | { type: 'tool'; tool: ToolId; files: File[]; options: ToolOptions };
-export type Progress = (percent: number, stage: string) => void;
+export type Progress = (percent: number, stage: string, candidate?: number) => void;
 export const formatBytes = (n: number, decimals = 1) =>
   n >= MB
     ? `${Number((n / MB).toFixed(decimals))} MB`
@@ -129,8 +150,15 @@ export function pageNumbers(range: string | undefined, count: number): number[] 
   return out;
 }
 export function profile(s: Settings, a: Analysis) {
+  const protectedMode = s.clarity || ['Clarity First', 'Government Form'].includes(s.preset);
+  if (s.preset === 'Government Form') return { dpi: 200, quality: 90, label: 'Government Form' };
+  if (s.preset === 'Clarity First') return { dpi: 200, quality: 88, label: 'Clarity First' };
   if (s.preset === 'Custom')
-    return { dpi: s.dpi, quality: s.quality, label: `Custom · ${s.dpi} DPI` };
+    return {
+      dpi: Math.max(protectedMode ? 150 : 72, s.dpi),
+      quality: Math.max(protectedMode ? 78 : 10, s.quality),
+      label: `Custom · ${s.dpi} DPI`,
+    };
   const p =
     s.preset === 'Extreme'
       ? [72, 38]
@@ -143,7 +171,11 @@ export function profile(s: Settings, a: Analysis) {
             : a.kind === 'Image-heavy document'
               ? [120, 70]
               : [180, 82];
-  return { dpi: p[0], quality: p[1], label: s.preset === 'Recommended' ? a.recommended : s.preset };
+  return {
+    dpi: Math.max(protectedMode ? 150 : 72, p[0]),
+    quality: Math.max(protectedMode ? 78 : 10, p[1]),
+    label: s.preset === 'Recommended' || s.preset === 'Smart Auto' ? a.recommended : s.preset,
+  };
 }
 /** A broad heuristic, not a promise: model the editable image streams separately from structure. */
 export function estimate(size: number, a: Analysis, s: Settings): [number, number] {

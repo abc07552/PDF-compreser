@@ -16,7 +16,9 @@ import { formatBytes } from '../engine/types';
 import type { Activity } from '../storage';
 import { EmptyState, Modal, PageHead, PanelHead } from './Common';
 export function metrics(all: Activity[]) {
-  const a = all.filter((i) => i.operation === 'Compress PDF');
+  const a = all.filter(
+    (i) => i.operation === 'Compress PDF' && (!i.status || i.status === 'success'),
+  );
   const saved = a.reduce((s, i) => s + Math.max(0, i.input - i.output), 0);
   return {
     saved,
@@ -66,7 +68,7 @@ function ActivityTable({ all, onDetail }: { all: Activity[]; onDetail: (a: Activ
               <td>
                 <span className="subtle-badge">{a.operation}</span>
               </td>
-              <td>{formatBytes(a.output)}</td>
+              <td>{a.status && a.status !== 'success' ? a.status : formatBytes(a.output)}</td>
               <td>{dateTime(a.at)}</td>
               <td>
                 <button
@@ -148,7 +150,7 @@ export function HistoryPage({
     <>
       <PageHead
         title="File history"
-        desc="A local record of your document activity. Files themselves are never stored."
+        desc="A local record of your document activity. This history contains metadata, not PDF contents."
       >
         <button className="button ghost" disabled={!activities.length} onClick={onClear}>
           <Trash2 size={15} />
@@ -282,7 +284,7 @@ export function Insights({ activities }: { activities: Activity[] }) {
         </div>
         <p className="chart-caption">
           {activities.length
-            ? 'Each completed compression or tool run counts as one operation.'
+            ? 'Each recorded job counts as one operation, including failed or cancelled jobs.'
             : 'No operations recorded yet. Your real usage will appear here.'}
         </p>
       </section>
@@ -309,6 +311,33 @@ export function Insights({ activities }: { activities: Activity[] }) {
           </div>
         </dl>
       </section>
+      <section className="panel insight-summary">
+        <PanelHead icon={BarChart3} title="Job outcomes & profiles" />
+        <dl>
+          {[
+            [
+              'Successful jobs',
+              activities.filter((a) => !a.status || a.status === 'success').length,
+            ],
+            ['Failed jobs', activities.filter((a) => a.status === 'failed').length],
+            ['Cancelled jobs', activities.filter((a) => a.status === 'cancelled').length],
+            ...Object.entries(
+              activities
+                .filter((a) => a.operation === 'Compress PDF')
+                .reduce<Record<string, number>>((p, a) => {
+                  const k = a.profile || 'Legacy profile';
+                  p[k] = (p[k] || 0) + 1;
+                  return p;
+                }, {}),
+            ),
+          ].map(([k, v]) => (
+            <div key={k}>
+              <dt>{k}</dt>
+              <dd>{v}</dd>
+            </div>
+          ))}
+        </dl>
+      </section>
     </>
   );
 }
@@ -326,7 +355,9 @@ export function ActivityDetail({ record: a, onClose }: { record: Activity; onClo
             ['Original size', formatBytes(a.input)],
             ['Output size', formatBytes(a.output)],
             ['Pages', String(a.pages)],
-            ['Completed', new Date(a.at).toLocaleString()],
+            ['Status', a.status || 'success'],
+            ['Profile', a.profile || '—'],
+            ['Recorded', new Date(a.at).toLocaleString()],
           ].map(([k, v]) => (
             <div key={k}>
               <dt>{k}</dt>

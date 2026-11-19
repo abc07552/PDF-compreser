@@ -175,6 +175,7 @@ export async function inspect(doc: PDFDocument): Promise<Analysis> {
     kind,
     imageBudget,
     oversizedImages,
+    sampledText: text,
     signed: isSigned(doc),
     recommended:
       kind === 'Text document'

@@ -1,13 +1,13 @@
 {
-  "name": "PDF MB Reducer AI PRO",
+  "name": "PDF MB Reducer AI ULTRA V6",
   "short_name": "PDF Reducer",
   "description": "Your private, on-device PDF compression studio.",
   "id": "./",
   "start_url": "./",
   "scope": "./",
   "display": "standalone",
-  "background_color": "#f6f8fb",
-  "theme_color": "#112142",
+  "background_color": "#090e17",
+  "theme_color": "#090e17",
   "icons": [
     {
       "src": "icon-192.png",

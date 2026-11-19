@@ -126,3 +126,5 @@ page2.node.set(
 );
 await writeFile('public/sample.pdf', await doc.save({ useObjectStreams: false }));
 console.log('Local engine, fonts, renderers and sample are ready.');
+
+await import('./library-assets.mjs');

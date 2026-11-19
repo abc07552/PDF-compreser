@@ -2,7 +2,7 @@ import { cp, mkdir, readdir, rm, writeFile } from 'node:fs/promises';
 
 // GitHub's branch-publishing mode supports /docs. Keep the human-written guides;
 // replace only generated entries so old hashed chunks don't accumulate.
-const directories = new Set(['assets', 'vendor', 'art']);
+const directories = new Set(['assets', 'vendor', 'art', 'library']);
 const files = new Set([
   'index.html',
   'manifest.webmanifest',

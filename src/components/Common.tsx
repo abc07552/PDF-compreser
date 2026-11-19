@@ -17,7 +17,7 @@ import {
   type LucideIcon,
 } from 'lucide-react';
 import { formatBytes, type Output } from '../engine/types';
-import { exportOutput } from '../storage';
+import { canDeliverShare, exportOutput } from '../storage';
 export function Brand() {
   return (
     <div className="brand">
@@ -342,7 +342,7 @@ export function ProgressBar({
     </div>
   );
 }
-export type PreviewRequest = { file: Blob; name: string; after?: Output };
+export type PreviewRequest = { file: Blob; name: string; page?: number; after?: Output };
 export function OutputCard({
   out,
   onPreview,
@@ -425,15 +425,17 @@ export function OutputCard({
             {original ? 'Compare' : 'Preview'}
           </button>
         )}
-        <button
-          className="icon-button"
-          disabled={exporting}
-          title="Share file"
-          aria-label="Share file"
-          onClick={() => save(true)}
-        >
-          <Share2 size={15} />
-        </button>
+        {canDeliverShare(out) && (
+          <button
+            className="icon-button"
+            disabled={exporting}
+            title="Share file"
+            aria-label="Share file"
+            onClick={() => save(true)}
+          >
+            <Share2 size={15} />
+          </button>
+        )}
       </div>
     </div>
   );

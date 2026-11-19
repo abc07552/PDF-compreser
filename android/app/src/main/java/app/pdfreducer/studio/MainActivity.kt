@@ -5,6 +5,7 @@ import android.app.Activity
 import android.content.ClipData
 import android.content.Intent
 import android.net.Uri
+import android.content.res.Configuration
 import android.os.Bundle
 import android.view.ViewGroup
 import android.view.WindowManager
@@ -84,13 +85,13 @@ class MainActivity : ComponentActivity() {
         lifecycleScope.launch(Dispatchers.IO) { cleanupExports(applicationContext) }
         val webVersion = WebView.getCurrentWebViewPackage()?.versionName?.substringBefore('.')?.toIntOrNull() ?: 0
         setContent {
-            MaterialTheme {
+            MaterialTheme(colorScheme = darkColorScheme()) {
                 var exitDialog by remember { mutableStateOf(false) }
                 Surface(Modifier.fillMaxSize()) {
                     Box(Modifier.fillMaxSize().safeDrawingPadding()) {
                         if (webVersion < 143 || crashed) {
                             Column(Modifier.align(Alignment.Center).padding(28.dp), verticalArrangement = Arrangement.spacedBy(14.dp)) {
-                                Text("PDF MB Reducer AI PRO", style = MaterialTheme.typography.headlineSmall)
+                                Text("PDF MB Reducer AI ULTRA V6", style = MaterialTheme.typography.headlineSmall)
                                 Text(if (crashed) "The document workspace closed under memory pressure. Your original files are unchanged. Reopen it and choose a smaller file." else "Update Android System WebView or Chrome to version 143 or later, then reopen the app. The local PDF engine needs a current WebView.")
                                 Button(onClick = { if (crashed) crashed = false else finish() }) { Text(if (crashed) "Reopen workspace" else "Close") }
                             }
@@ -130,11 +131,14 @@ class MainActivity : ComponentActivity() {
     private fun denied(status: Int = 403) = WebResourceResponse("text/plain", "UTF-8", status, if (status == 404) "Not Found" else "Forbidden", emptyMap(), ByteArrayInputStream(ByteArray(0)))
     @SuppressLint("SetJavaScriptEnabled")
     private fun makeStudio(): WebView {
-        val loader = WebViewAssetLoader.Builder().setDomain(HOST).addPathHandler("/") { path ->
+        val loader = WebViewAssetLoader.Builder().setDomain(HOST).addPathHandler("/owned/") { name ->
+            val file = if(name.endsWith(".pdf")) bridge.library.open(name.removeSuffix(".pdf")) else null
+            if(file == null) denied(404) else try { WebResourceResponse("application/pdf", null, 200, "OK", mapOf("Cache-Control" to "no-store", "X-Content-Type-Options" to "nosniff"), file.inputStream()) } catch(e: Exception) { denied(404) }
+        }.addPathHandler("/") { path ->
             val name = path.ifEmpty { "index.html" }
             if (name.contains("..") || name.startsWith('/') || name.contains('\\')) denied() else try {
                 val mime = when (name.substringAfterLast('.')) {
-                    "js", "mjs" -> "text/javascript"; "wasm" -> "application/wasm"; "css" -> "text/css"; "html" -> "text/html"; "woff2" -> "font/woff2"; "woff" -> "font/woff"; "webp" -> "image/webp"; "png" -> "image/png"; "svg" -> "image/svg+xml"; "pdf" -> "application/pdf"; "webmanifest", "json" -> "application/json"; else -> "application/octet-stream"
+                    "js", "mjs" -> "text/javascript"; "wasm" -> "application/wasm"; "css" -> "text/css"; "html" -> "text/html"; "woff2" -> "font/woff2"; "woff" -> "font/woff"; "webp" -> "image/webp"; "jpg" -> "image/jpeg"; "png" -> "image/png"; "svg" -> "image/svg+xml"; "pdf" -> "application/pdf"; "webmanifest", "json" -> "application/json"; else -> "application/octet-stream"
                 }
                 WebResourceResponse(mime, if (mime.startsWith("text/")) "UTF-8" else null, 200, "OK", mapOf("X-Content-Type-Options" to "nosniff", "Content-Security-Policy" to "default-src 'self'; script-src 'self' 'wasm-unsafe-eval'; worker-src 'self' blob:; style-src 'self' 'unsafe-inline'; img-src 'self' blob: data:; font-src 'self' blob: data:; connect-src 'self' blob:; object-src 'none'; frame-src 'none'; base-uri 'none'; form-action 'none'"), assets.open("workspace/$name"))
             } catch (e: Exception) { denied(404) }
@@ -143,6 +147,7 @@ class MainActivity : ComponentActivity() {
         return WebView(this).apply {
             browser = this
             settings.javaScriptEnabled = true
+            settings.textZoom = (resources.configuration.fontScale * 100).toInt()
             settings.domStorageEnabled = true
             settings.allowFileAccess = false
             settings.allowContentAccess = true // Only picker-granted content URIs; never remote navigation.
@@ -154,10 +159,10 @@ class MainActivity : ComponentActivity() {
             CookieManager.getInstance().setAcceptThirdPartyCookies(this, false)
             addJavascriptInterface(bridge, "PdfNative")
             webViewClient = object : WebViewClient() {
-                override fun shouldOverrideUrlLoading(view: WebView, request: WebResourceRequest): Boolean = request.url.scheme != "https" || request.url.host != HOST
+                override fun shouldOverrideUrlLoading(view: WebView, request: WebResourceRequest): Boolean = request.url.scheme != "https" || request.url.host != HOST || request.url.path != "/index.html"
                 override fun shouldInterceptRequest(view: WebView, request: WebResourceRequest): WebResourceResponse = if (request.url.scheme == "https" && request.url.host == HOST) loader.shouldInterceptRequest(request.url) ?: denied(404) else denied()
                 override fun onRenderProcessGone(view: WebView, detail: RenderProcessGoneDetail): Boolean {
-                    (view.parent as? ViewGroup)?.removeView(view); view.destroy(); browser = null; bridge.abortExport(); crashed = true; return true
+                    (view.parent as? ViewGroup)?.removeView(view); view.destroy(); browser = null; bridge.abortExport(); bridge.abortLibraryFile(); crashed = true; return true
                 }
             }
             webChromeClient = object : WebChromeClient() {
@@ -165,7 +170,8 @@ class MainActivity : ComponentActivity() {
                 override fun onShowFileChooser(view: WebView, callback: ValueCallback<Array<Uri>>, params: WebChromeClient.FileChooserParams): Boolean {
                     fileCallback?.onReceiveValue(null); fileCallback = callback
                     val image = params.acceptTypes.any { it.contains("image/") }
-                    val intent = Intent(Intent.ACTION_OPEN_DOCUMENT).addCategory(Intent.CATEGORY_OPENABLE).setType(if (image) "image/*" else "application/pdf").putExtra(Intent.EXTRA_ALLOW_MULTIPLE, params.mode == WebChromeClient.FileChooserParams.MODE_OPEN_MULTIPLE)
+                    val zip = params.acceptTypes.any { it.contains("zip") }
+                    val intent = Intent(Intent.ACTION_OPEN_DOCUMENT).addCategory(Intent.CATEGORY_OPENABLE).setType(if (image) "image/*" else if(zip) "application/zip" else "application/pdf").putExtra(Intent.EXTRA_ALLOW_MULTIPLE, params.mode == WebChromeClient.FileChooserParams.MODE_OPEN_MULTIPLE)
                     if (image) intent.putExtra(Intent.EXTRA_MIME_TYPES, arrayOf("image/png", "image/jpeg", "image/webp"))
                     try { picker.launch(intent) } catch (e: Exception) { fileCallback = null; callback.onReceiveValue(null); notifyWorkspace("No system file picker is available.") }
                     return true
@@ -174,10 +180,11 @@ class MainActivity : ComponentActivity() {
             loadUrl(HOME)
         }
     }
+    override fun onConfigurationChanged(newConfig: Configuration) { super.onConfigurationChanged(newConfig); browser?.settings?.textZoom = (newConfig.fontScale*100).toInt() }
     override fun onSaveInstanceState(outState: Bundle) { super.onSaveInstanceState(outState); pendingSave?.let { outState.putString("stagedExport", it.file.path) } }
     override fun onDestroy() {
         fileCallback?.onReceiveValue(null); fileCallback = null
         browser?.apply { removeJavascriptInterface("PdfNative"); stopLoading(); (parent as? ViewGroup)?.removeView(this); destroy() }; browser = null
-        bridge.abortExport(); store.close(); super.onDestroy()
+        bridge.abortExport(); bridge.abortLibraryFile(); store.close(); super.onDestroy()
     }
 }

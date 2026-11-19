@@ -1,3 +1,5 @@
+import { exportImages } from '../engine/render';
+import type { DocumentItem } from '../v6/types';
 import { useRef, useEffect, useState } from 'react';
 import {
   ArrowDown,
@@ -89,7 +91,13 @@ export function ToolDialog({
   onPreview,
   record,
   notify,
+  library,
+  getFile,
+  selectedId,
 }: {
+  library: DocumentItem[];
+  getFile: (d: DocumentItem) => Promise<File>;
+  selectedId: string;
   id: ToolId;
   onClose: () => void;
   onPreview: (p: PreviewRequest) => void;
@@ -113,6 +121,7 @@ export function ToolDialog({
     [busy, setBusy] = useState(false),
     [prog, setProg] = useState({ n: 0, label: '' }),
     [order, setOrder] = useState<number[]>([]);
+  const [libraryId, setLibraryId] = useState(selectedId || library[0]?.id || '');
   const ac = useRef<AbortController | null>(null);
   useEffect(() => () => ac.current?.abort(), []);
   const change = (v: Partial<ToolOptions>) => {
@@ -173,9 +182,7 @@ export function ToolDialog({
       const options = { ...o, range: id === 'organize' && pages <= 60 ? order.join(',') : o.range };
       const output =
         id === 'to-images'
-          ? await (
-              await import('../engine/render')
-            ).exportImages(files[0], options, progress, a.signal)
+          ? await exportImages(files[0], options, progress, a.signal)
           : await runJob({ type: 'tool', tool: id, files, options }, a.signal, progress);
       if (a.signal.aborted) return;
       setOut(output);
@@ -190,6 +197,16 @@ export function ToolDialog({
       });
       setO((old) => ({ ...old, password: '' }));
     } catch (e) {
+      record({
+        id: crypto.randomUUID(),
+        name: files[0]?.name || 'Document',
+        operation: t.label,
+        input: files.reduce((n, f) => n + f.size, 0),
+        output: 0,
+        pages,
+        at: Date.now(),
+        status: a.signal.aborted ? 'cancelled' : 'failed',
+      });
       if (!a.signal.aborted) setError((e as Error).message);
       else setError('Processing cancelled. Your original is unchanged.');
     } finally {
@@ -215,6 +232,34 @@ export function ToolDialog({
             inputId="tool-picker"
             multiple={multi}
           />
+          {!images && library.length > 0 && (
+            <div className="tool-library">
+              <label className="v-label">
+                From document library
+                <select value={libraryId} onChange={(e) => setLibraryId(e.target.value)}>
+                  {library.map((d) => (
+                    <option key={d.id} value={d.id}>
+                      {d.name}
+                    </option>
+                  ))}
+                </select>
+              </label>
+              <button
+                type="button"
+                className="v-btn"
+                onClick={async () => {
+                  try {
+                    const d = library.find((i) => i.id === libraryId);
+                    if (d) await select([await getFile(d)]);
+                  } catch (e) {
+                    setError((e as Error).message);
+                  }
+                }}
+              >
+                Use document
+              </button>
+            </div>
+          )}
           {files.length > 0 && (
             <div className="tool-files">
               {files.map((f, i) => (

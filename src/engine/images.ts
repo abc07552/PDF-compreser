@@ -1,7 +1,7 @@
 import { zlibSync } from 'fflate';
 import { PDFDict, PDFDocument, PDFName, PDFRawStream, PDFRef } from 'pdf-lib';
 import { N, num, inflateBounded } from './document';
-import { exactBuffer, type ColorMode, type Progress } from './types';
+import { exactBuffer, type Enhancement, type ColorMode, type Progress } from './types';
 const MAX_PIXELS = 12_000_000;
 const paeth = (a: number, b: number, c: number) => {
   const p = a + b - c,
@@ -73,6 +73,7 @@ export async function optimizeImages(
   quality: number,
   color: ColorMode,
   progress: Progress,
+  enhancement: Enhancement = 'Off',
 ) {
   if (typeof OffscreenCanvas === 'undefined' || typeof createImageBitmap === 'undefined') return 0;
   const pages = doc.getPages();
@@ -145,6 +146,28 @@ export async function optimizeImages(
       ctx.imageSmoothingEnabled = true;
       ctx.imageSmoothingQuality = 'high';
       ctx.drawImage(source, 0, 0, width, height);
+      // A bounded four-neighbour unsharp filter or tonal cleanup, never invented pixels/OCR.
+      if (enhancement !== 'Off') {
+        const bitmap = ctx.getImageData(0, 0, width, height),
+          dst = bitmap.data;
+        if (enhancement === 'HD clarity') {
+          const src = new Uint8ClampedArray(dst);
+          for (let y = 1; y < height - 1; y++)
+            for (let x = 1; x < width - 1; x++) {
+              const at = (y * width + x) * 4;
+              for (let c = 0; c < 3; c++) {
+                const k = at + c;
+                const avg =
+                  (src[k - 4] + src[k + 4] + src[k - width * 4] + src[k + width * 4]) * 0.25;
+                dst[k] = src[k] + Math.max(-18, Math.min(18, (src[k] - avg) * 0.65));
+              }
+            }
+        } else {
+          for (let k = 0; k < dst.length; k += 4)
+            for (let c = 0; c < 3; c++) dst[k + c] = (dst[k + c] - 128) * 1.12 + 132;
+        }
+        ctx.putImageData(bitmap, 0, 0);
+      }
       let binary: Uint8Array | undefined;
       if (color !== 'Color') {
         const im = ctx.getImageData(0, 0, width, height);

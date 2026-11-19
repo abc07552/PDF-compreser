@@ -1,15 +1,17 @@
 import type { Analysis, Job, Output, Progress } from './types';
-export function runJob<J extends Job>(
-  job: J,
+/** One job owns one disposable worker and its memory. Used by PDF and archive operations. */
+export function dispatch<R>(
+  factory: () => Worker,
+  job: unknown,
   signal?: AbortSignal,
   progress?: Progress,
-): Promise<J extends { type: 'analyze' } ? Analysis : Output> {
+): Promise<R> {
   return new Promise((resolve, reject) => {
     if (signal?.aborted) {
       reject(new DOMException('Processing cancelled.', 'AbortError'));
       return;
     }
-    const worker = new Worker(new URL('./worker.ts', import.meta.url), { type: 'module' });
+    const worker = factory();
     const clean = () => {
       clearTimeout(timer);
       signal?.removeEventListener('abort', cancel);
@@ -28,7 +30,7 @@ export function runJob<J extends Job>(
     );
     signal?.addEventListener('abort', cancel, { once: true });
     worker.onmessage = (e) => {
-      if (e.data.type === 'progress') progress?.(e.data.percent, e.data.stage);
+      if (e.data.type === 'progress') progress?.(e.data.percent, e.data.stage, e.data.candidate);
       else if (e.data.type === 'error') fail(Error(e.data.message));
       else {
         clean();
@@ -37,6 +39,22 @@ export function runJob<J extends Job>(
     };
     worker.onerror = () =>
       fail(Error('The local worker stopped. Try a smaller document or update your browser.'));
-    worker.postMessage(job);
+    try {
+      worker.postMessage(job);
+    } catch (e) {
+      fail(e as Error);
+    }
   });
+}
+export function runJob<J extends Job>(
+  job: J,
+  signal?: AbortSignal,
+  progress?: Progress,
+): Promise<J extends { type: 'analyze' } ? Analysis : Output> {
+  return dispatch(
+    () => new Worker(new URL('./worker.ts', import.meta.url), { type: 'module' }),
+    job,
+    signal,
+    progress,
+  );
 }

@@ -51,6 +51,20 @@ window.lab = {
       await doc.destroy();
     }
   },
+  async field(name) {
+    const d = await PDFDocument.load(await output.blob.arrayBuffer());
+    return d.getForm().getTextField(name).getText();
+  },
+  async imageDigest() {
+    const d = await PDFDocument.load(await output.blob.arrayBuffer());
+    const o = d.context
+      .enumerateIndirectObjects()
+      .find(
+        ([, o]) =>
+          o instanceof PDFRawStream && o.dict.get(PDFName.of('Subtype')) === PDFName.of('Image'),
+      )[1];
+    return Array.from(new Uint8Array(await crypto.subtle.digest('SHA-256', o.contents))).join('.');
+  },
   async imageInfo() {
     const doc = await PDFDocument.load(await output.blob.arrayBuffer(), { updateMetadata: false });
     return doc.context

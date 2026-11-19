@@ -23,6 +23,7 @@ const roots = [
     .filter((name) => name.endsWith('.md') || name === 'studio.webp' || name === 'test-run.txt')
     .map((name) => 'docs/' + name),
   'public/art/compression-engine.webp',
+  'public/art/alpine-survey.jpg',
   'public/mark.svg',
   'public/manifest.webmanifest',
   'public/icon-192.png',
@@ -39,7 +40,7 @@ const roots = [
   'android/app/src',
 ];
 const archive = {};
-const root = 'PDF-MB-Reducer-AI-PRO/';
+const root = 'PDF-MB-Reducer-AI-ULTRA-V6/';
 async function add(path) {
   const s = await stat(path);
   if (s.isDirectory()) {
@@ -54,7 +55,7 @@ async function add(path) {
 }
 for (const path of roots) await add(path);
 const bytes = zipSync(archive, { level: 6 });
-const name = 'PDF-MB-Reducer-AI-PRO-source.zip';
+const name = 'PDF-MB-Reducer-AI-ULTRA-V6-source.zip';
 await mkdir('deliverables', { recursive: true });
 await writeFile('deliverables/' + name, bytes);
 await writeFile(

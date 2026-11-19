@@ -1,19 +1,63 @@
-import { useEffect, useRef, useState } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 import { ChevronLeft, ChevronRight, LoaderCircle, Minus, Plus } from 'lucide-react';
 import type { PDFDocumentProxy } from 'pdfjs-dist';
 import { openForViewing, renderPage } from '../engine/render';
 import { formatBytes } from '../engine/types';
 import { Modal, Notice, type PreviewRequest } from './Common';
+interface Sample {
+  page: number;
+  pixels: Uint8ClampedArray;
+  text: string;
+  width: number;
+  height: number;
+}
+async function sampleSheet(
+  doc: PDFDocumentProxy,
+  page: number,
+  canvas: HTMLCanvasElement,
+): Promise<Sample> {
+  const p = await doc.getPage(page),
+    v = p.getViewport({ scale: 1 });
+  const c = document.createElement('canvas');
+  c.width = 128;
+  c.height = Math.max(1, Math.min(192, Math.round((128 * v.height) / v.width)));
+  const ctx = c.getContext('2d', { willReadFrequently: true })!;
+  ctx.drawImage(canvas, 0, 0, c.width, c.height);
+  const txt = await p.getTextContent();
+  const data = txt.items
+    .map((t) => ('str' in t ? t.str : ''))
+    .join(' ')
+    .replace(/\s+/g, ' ')
+    .trim();
+  return {
+    page,
+    width: v.width,
+    height: v.height,
+    pixels: ctx.getImageData(0, 0, c.width, c.height).data,
+    text: data,
+  };
+}
+function quality(a: Sample, b: Sample) {
+  if (a.width !== b.width || a.height !== b.height || a.pixels.length !== b.pixels.length)
+    return 'Page geometry differs.';
+  let delta = 0;
+  for (let i = 0; i < a.pixels.length; i += 4) {
+    for (let j = 0; j < 3; j++) delta += Math.abs(a.pixels[i + j] - b.pixels[i + j]);
+  }
+  return `Geometry matches · ${a.text === b.text ? (a.text ? 'Selectable text matches' : 'No selectable text on this page') : 'Selectable text differs'} · Mean pixel difference ${((delta / (a.pixels.length * 0.75 * 255)) * 100).toFixed(2)}%`;
+}
 function Sheet({
   blob,
   page,
   zoom,
   onCount,
+  onSample,
 }: {
   blob: Blob;
   page: number;
   zoom: number;
   onCount: (n: number) => void;
+  onSample?: (s: Sample) => void;
 }) {
   const [doc, setDoc] = useState<PDFDocumentProxy | null>(null),
     [error, setError] = useState(''),
@@ -56,8 +100,14 @@ function Sheet({
       Math.min(2.2, window.devicePixelRatio * 1.1) * zoom,
       a.signal,
     )
-      .then(() => {
-        if (!a.signal.aborted) setBusy(false);
+      .then(async () => {
+        if (!a.signal.aborted) {
+          setBusy(false);
+          if (onSample && canvas.current) {
+            const shot = await sampleSheet(doc, page, canvas.current);
+            if (!a.signal.aborted) onSample(shot);
+          }
+        }
       })
       .catch((e) => {
         if (!a.signal.aborted) {
@@ -66,7 +116,7 @@ function Sheet({
         }
       });
     return () => a.abort();
-  }, [doc, page, zoom]);
+  }, [doc, page, zoom, onSample]);
   return (
     <div className="sheet">
       {error ? (
@@ -87,9 +137,13 @@ function Sheet({
   );
 }
 export default function Preview({ req, onClose }: { req: PreviewRequest; onClose: () => void }) {
-  const [page, setPage] = useState(1),
+  const [page, setPage] = useState(req.page || 1),
     [count, setCount] = useState(1),
     [zoom, setZoom] = useState(1);
+  const [a, setA] = useState<Sample | null>(null),
+    [b, setB] = useState<Sample | null>(null);
+  const left = useCallback((s: Sample) => setA(s), []),
+    right = useCallback((s: Sample) => setB(s), []);
   return (
     <Modal
       title={req.after ? 'Before & after' : 'Document preview'}
@@ -144,17 +198,41 @@ export default function Preview({ req, onClose }: { req: PreviewRequest; onClose
           <div className="preview-label">
             {req.after ? 'Original' : 'Document'} <b>{formatBytes(req.file.size)}</b>
           </div>
-          <Sheet blob={req.file} page={page} zoom={zoom} onCount={setCount} />
+          <Sheet
+            blob={req.file}
+            page={page}
+            zoom={zoom}
+            onCount={setCount}
+            onSample={req.after ? left : undefined}
+          />
         </div>
         {req.after && (
           <div>
             <div className="preview-label">
               Compressed <b>{formatBytes(req.after.blob.size)}</b>
             </div>
-            <Sheet blob={req.after.blob} page={page} zoom={zoom} onCount={setCount} />
+            <Sheet
+              blob={req.after.blob}
+              page={page}
+              zoom={zoom}
+              onCount={setCount}
+              onSample={right}
+            />
           </div>
         )}
       </div>
+      {req.after && (
+        <div className="v-quality" aria-live="polite">
+          <b>Page {page} inspection</b>
+          <p>
+            {a?.page === page && b?.page === page ? quality(a, b) : 'Inspecting rendered pages…'}
+          </p>
+          <small>
+            Pixel difference compares reduced previews, not readability. Zoom in to inspect fine
+            print.
+          </small>
+        </div>
+      )}
     </Modal>
   );
 }

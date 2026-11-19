@@ -181,3 +181,62 @@ test('preserves transparent images and their soft masks', async ({ page }) => {
   expect(r.imagesOptimized).toBe(0);
   expect(await page.evaluate(() => lab.verifiedPixelDiff())).toBe(0);
 });
+test('exact target uses bounded retries and never pads or sacrifices clarity to claim success', async ({
+  page,
+}) => {
+  await select(page, 'jpeg-scan');
+  const r = await page.evaluate(() =>
+    lab.compress({ preset: 'Smart Auto', exact: true, clarity: false, target: 1024 }),
+  );
+  expect(r.attempts).toBeGreaterThanOrEqual(3);
+  expect(r.attempts).toBeLessThanOrEqual(5);
+  expect(r.targetMet).toBe(false);
+  const protectedResult = await page.evaluate(() =>
+    lab.compress({ preset: 'Clarity First', exact: true, target: 1024 }),
+  );
+  expect(protectedResult.clarityProtected).toBe(true);
+  if (protectedResult.imagesOptimized) {
+    expect(protectedResult.dpi).toBeGreaterThanOrEqual(150);
+    expect(protectedResult.quality).toBeGreaterThanOrEqual(78);
+  }
+  expect(protectedResult.output).toBeLessThanOrEqual(protectedResult.original);
+});
+test('government profile preserves actual fillable form and field value', async ({ page }) => {
+  await page.locator('#files').setInputFiles('public/library/permit.pdf');
+  const r = await page.evaluate(() =>
+    lab.compress({ preset: 'Government Form', color: 'Black & white', exact: true, target: 1024 }),
+  );
+  expect(r.formProtected).toBe(true);
+  expect(r.imagesOptimized).toBe(0);
+  expect(await page.evaluate(() => lab.field('Applicant'))).toBe('Example applicant');
+});
+test('HD and scan cleanup transform supported image pixels, not page text', async ({ page }) => {
+  await page.locator('#files').setInputFiles('public/library/alpine.pdf');
+  const before = await page.evaluate(() => lab.inspect(true));
+  const output = [];
+  for (const enhancement of ['Off', 'HD clarity', 'Scan cleanup']) {
+    const r = await page.evaluate(
+      (enhancement) =>
+        lab.compress({ preset: 'Custom', target: 0, dpi: 150, quality: 80, enhancement }),
+      enhancement,
+    );
+    expect(r.imagesOptimized).toBeGreaterThan(0);
+    expect(r.enhanced).toBe(enhancement === 'Off' ? 0 : 1);
+    output.push(await page.evaluate(() => lab.imageDigest()));
+  }
+  expect(new Set(output).size).toBe(3);
+  expect(await page.evaluate(() => lab.inspect())).toEqual(before);
+});
+test('1000 MB is a target bound, not a request to inflate or admit huge files', async ({
+  page,
+}) => {
+  await select(page, 'minimal');
+  const r = await page.evaluate(() =>
+    lab.compress({ preset: 'Smart Auto', target: 1000 * 1024 * 1024 }),
+  );
+  expect(r.unchanged).toBe(true);
+  expect(r.targetMet).toBe(true);
+  await expect(page.evaluate(() => lab.compress({ target: 1001 * 1024 * 1024 }))).rejects.toThrow(
+    'valid compression profile',
+  );
+});

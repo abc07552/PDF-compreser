@@ -37,13 +37,13 @@ class StudioSmokeTest {
     @Test fun bundledSampleCompressesWithoutNetworkAndSurvivesRotation() {
         assumeTrue("Update the emulator WebView before running the engine smoke test", (WebView.getCurrentWebViewPackage()?.versionName?.substringBefore('.')?.toIntOrNull() ?: 0) >= 143)
         ActivityScenario.launch(MainActivity::class.java).use { scenario ->
-            awaitDom(scenario, "document.querySelector('.upload-footer button')")
-            js(scenario, "document.querySelector('.upload-footer button').click()")
-            awaitDom(scenario, "document.querySelector('.analysis-line')")
-            js(scenario, "document.querySelector('.compress-button').click()")
-            awaitDom(scenario, "document.querySelector('.output-card')")
+            awaitDom(scenario, "document.querySelector('.ultra')")
+            js(scenario, "location.hash='/compress'")
+            awaitDom(scenario, "document.querySelector('.compress-cta:not(:disabled)')")
+            js(scenario, "document.querySelector('.compress-cta').click()")
+            awaitDom(scenario, "document.querySelector('.delivery-card')")
             scenario.onActivity { it.requestedOrientation = ActivityInfo.SCREEN_ORIENTATION_LANDSCAPE }
-            awaitDom(scenario, "innerWidth > innerHeight && document.querySelector('.output-card')")
+            awaitDom(scenario, "innerWidth > innerHeight && document.querySelector('.delivery-card')")
             assertTrue(js(scenario,"document.documentElement.scrollWidth <= innerWidth") == "true")
         }
     }

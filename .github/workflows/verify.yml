@@ -1,7 +1,8 @@
 name: Verify studio and build Android
 on:
   push:
-    branches: [main]
+    branches: [main, 'arena/**']
+    paths-ignore: ['docs/**', 'deliverables/**', '**.md']
   pull_request:
   workflow_dispatch:
 concurrency:
@@ -12,7 +13,7 @@ permissions:
 jobs:
   engine:
     runs-on: ubuntu-24.04
-    timeout-minutes: 15
+    timeout-minutes: 22
     steps:
       - uses: actions/checkout@v5
       - uses: actions/setup-node@v5
@@ -46,7 +47,7 @@ jobs:
         working-directory: android
         run: ./gradlew --no-daemon :app:lintRelease :app:assembleDebug :app:assembleRelease :app:assembleDebugAndroidTest
       - uses: actions/upload-artifact@v4
-        with: { name: PDF-Reducer-installable-debug-APK, path: android/app/build/outputs/apk/debug/app-debug.apk }
+        with: { name: PDF-Reducer-ULTRA-V6-debug-APK, path: android/app/build/outputs/apk/debug/app-debug.apk }
   device:
     if: github.event_name == 'workflow_dispatch'
     runs-on: ubuntu-24.04

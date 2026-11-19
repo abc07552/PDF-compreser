@@ -6,7 +6,7 @@ if (signingFile.isFile) signingFile.inputStream().use { signingProps.load(it) }
 android {
     namespace = "app.pdfreducer.studio"
     compileSdk = 36
-    defaultConfig { applicationId = "app.pdfreducer.studio"; minSdk = 29; targetSdk = 36; versionCode = 1; versionName = "1.0.0"; testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner" }
+    defaultConfig { applicationId = "app.pdfreducer.studio"; minSdk = 29; targetSdk = 36; versionCode = 6; versionName = "6.0.0"; testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner" }
     signingConfigs { if(signingFile.isFile) create("production") { storeFile = rootProject.file(signingProps.getProperty("storeFile")); storePassword = signingProps.getProperty("storePassword"); keyAlias = signingProps.getProperty("keyAlias"); keyPassword = signingProps.getProperty("keyPassword") } }
     buildTypes { release { isMinifyEnabled = true; isShrinkResources = true; proguardFiles(getDefaultProguardFile("proguard-android-optimize.txt"), "proguard-rules.pro"); if(signingFile.isFile) signingConfig = signingConfigs.getByName("production") } }
     buildFeatures { compose = true; buildConfig = true }
