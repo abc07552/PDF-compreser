@@ -64,6 +64,19 @@ jobs:
         with: { distribution: temurin, java-version: '17' }
       - uses: gradle/actions/setup-gradle@v4
       - run: npm ci && npm run android:sync
+      - name: Select the newest stable Google APIs image for modern WebView tests
+        id: image
+        run: |
+          export JAVA_HOME="$JAVA_HOME_21_X64"
+          "$ANDROID_HOME/cmdline-tools/latest/bin/sdkmanager" --channel=0 --list > "$RUNNER_TEMP/available-sdk-images.txt"
+          python3 - <<'PYTHON'
+          import os, pathlib, re
+          listing=(pathlib.Path(os.environ['RUNNER_TEMP'])/'available-sdk-images.txt').read_text()
+          levels=[int(x) for x in re.findall(r'^\s*system-images;android-(\d+);google_apis;x86_64\s*\|',listing,re.M) if int(x)>=36]
+          level=max(levels,default=36)
+          with open(os.environ['GITHUB_OUTPUT'],'a') as f: print(f'api={level}',file=f)
+          print(f'::notice::Testing Google APIs x86_64 image at API {level}; app compile/target SDK stays 36.')
+          PYTHON
       - name: Enable KVM
         run: |
           echo 'KERNEL=="kvm", GROUP="kvm", MODE="0666", OPTIONS+="static_node=kvm"' | sudo tee /etc/udev/rules.d/99-kvm4all.rules
@@ -71,11 +84,11 @@ jobs:
           sudo udevadm trigger --name-match=kvm
       - uses: reactivecircus/android-emulator-runner@v2
         with:
-          api-level: 36
+          api-level: ${{ steps.image.outputs.api }}
           target: google_apis
           arch: x86_64
           disable-animations: true
-          script: cd android && ./gradlew --no-daemon :app:connectedDebugAndroidTest
+          script: cd android && ./gradlew --no-daemon :app:connectedDebugAndroidTest -Pandroid.testInstrumentationRunnerArguments.exerciseWindows=true
       - name: Report executed device tests (a skipped WebView smoke is not a pass)
         if: always()
         run: |
