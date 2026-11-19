@@ -64,26 +64,10 @@ jobs:
         with: { distribution: temurin, java-version: '17' }
       - uses: gradle/actions/setup-gradle@v4
       - run: npm ci && npm run android:sync
-      - name: Select a stable Google APIs image compatible with hosted KVM
-        id: image
+      - name: Keep SDK tools and the app build on their supported JDKs
         run: |
           echo "STUDIO_BUILD_JAVA=$JAVA_HOME" >> "$GITHUB_ENV"
           echo "STUDIO_SDK_JAVA=$JAVA_HOME_21_X64" >> "$GITHUB_ENV"
-          export JAVA_HOME="$JAVA_HOME_21_X64"
-          "$ANDROID_HOME/cmdline-tools/latest/bin/sdkmanager" --channel=0 --list > "$RUNNER_TEMP/available-sdk-images.txt"
-          python3 - <<'PYTHON'
-          import os, pathlib, re
-          listing=(pathlib.Path(os.environ['RUNNER_TEMP'])/'available-sdk-images.txt').read_text()
-          # Recent packages use dotted API IDs and may have a 16 KiB image tag.
-          images=set(re.findall(r'system-images;android-(\d+(?:\.\d+)?);(google_apis(?:_playstore)?(?:_ps16k)?);x86_64(?=\s|\|)',listing))
-          # The 37.2 ps16k-only image did not boot on hosted KVM. Do not
-          # substitute a skipped UI test for a pass or lower the app's WebView floor.
-          images=[(v,t) for v,t in images if int(v.split('.')[0])>=36 and t=='google_apis']
-          if not images: raise SystemExit('No standard stable Google APIs x86_64 image is available.')
-          level,tag=max(images,key=lambda a:tuple(map(int,a[0].split('.'))))
-          with open(os.environ['GITHUB_OUTPUT'],'a') as f: print(f'api={level}\ntag={tag}',file=f)
-          print(f'::notice::Selected system-images;android-{level};{tag};x86_64 from the stable SDK channel. Build platform remains API 36.')
-          PYTHON
       - name: Enable KVM
         run: |
           echo 'KERNEL=="kvm", GROUP="kvm", MODE="0666", OPTIONS+="static_node=kvm"' | sudo tee /etc/udev/rules.d/99-kvm4all.rules
@@ -93,9 +77,10 @@ jobs:
         env:
           JAVA_HOME: ${{ env.STUDIO_SDK_JAVA }}
         with:
+          # Pin the bootable native baseline. API 37.0 and 37.2 timed out on this runner.
+          # StudioSmokeTest still requires a genuinely supported WebView for either UI test.
           api-level: 36
-          system-image-api-level: ${{ steps.image.outputs.api }}
-          target: ${{ steps.image.outputs.tag }}
+          target: google_apis
           arch: x86_64
           disable-animations: true
           script: bash scripts/verify-device.sh
@@ -105,7 +90,7 @@ jobs:
           python3 - <<'PYTHON'
           import pathlib, xml.etree.ElementTree as ET
           files=list(pathlib.Path('android/app/build/outputs/androidTest-results/connected').rglob('TEST-*.xml'))
-          if not files: print('::warning::No emulator test report was produced.')
+          if not files: raise SystemExit('No emulator test report was produced; device verification is incomplete.')
           for f in files:
               for t in ET.parse(f).iter('testcase'):
                   state='SKIPPED' if t.find('skipped') is not None else 'FAILED' if t.find('failure') is not None or t.find('error') is not None else 'PASSED'
