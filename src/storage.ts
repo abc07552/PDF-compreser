@@ -49,7 +49,26 @@ function db() {
             r.result.createObjectStore(name, { keyPath: 'id' });
         if (!r.result.objectStoreNames.contains('files')) r.result.createObjectStore('files');
       };
-      r.onsuccess = () => resolve(r.result);
+      let blocked = false;
+      r.onblocked = () => {
+        blocked = true;
+        reject(
+          Error('Close other open versions of PDF Reducer, then reload to upgrade the library.'),
+        );
+      };
+      r.onsuccess = () => {
+        const connection = r.result;
+        if (blocked) {
+          connection.close();
+          database = undefined;
+          return;
+        }
+        connection.onversionchange = () => {
+          connection.close();
+          database = undefined;
+        };
+        resolve(connection);
+      };
       r.onerror = () => reject(Error('Activity storage is unavailable.'));
     });
   return database;

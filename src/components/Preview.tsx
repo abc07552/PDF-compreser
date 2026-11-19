@@ -10,6 +10,7 @@ interface Sample {
   text: string;
   width: number;
   height: number;
+  geometry: string;
 }
 async function sampleSheet(
   doc: PDFDocumentProxy,
@@ -31,6 +32,7 @@ async function sampleSheet(
     .trim();
   return {
     page,
+    geometry: JSON.stringify([p.view, p.rotate, p.userUnit]),
     width: v.width,
     height: v.height,
     pixels: ctx.getImageData(0, 0, c.width, c.height).data,
@@ -38,7 +40,12 @@ async function sampleSheet(
   };
 }
 function quality(a: Sample, b: Sample) {
-  if (a.width !== b.width || a.height !== b.height || a.pixels.length !== b.pixels.length)
+  if (
+    a.geometry !== b.geometry ||
+    a.width !== b.width ||
+    a.height !== b.height ||
+    a.pixels.length !== b.pixels.length
+  )
     return 'Page geometry differs.';
   let delta = 0;
   for (let i = 0; i < a.pixels.length; i += 4) {

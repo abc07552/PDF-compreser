@@ -113,7 +113,7 @@ export function DocumentView() {
             <div>
               <b>{d.name}</b>
               <small>
-                Original document <i /> {formatBytes(d.size)}
+                {d.sample ? 'Bundled example' : 'Original document'} <i /> {formatBytes(d.size)}
               </small>
             </div>
             <IconButton

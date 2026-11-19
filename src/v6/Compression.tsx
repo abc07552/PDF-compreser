@@ -461,8 +461,8 @@ export function Compression() {
           <b>Result history</b>
           <small>
             {w.acts.some((a) => a.name === d?.name)
-              ? `${w.acts.filter((a) => a.name === d?.name).length} recorded jobs for this PDF`
-              : 'No jobs recorded for this PDF'}
+              ? `${w.acts.filter((a) => a.name === d?.name).length} recorded jobs with this filename`
+              : 'No recorded jobs with this filename'}
           </small>
         </div>
         <button

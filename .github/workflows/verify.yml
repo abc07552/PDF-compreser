@@ -49,7 +49,7 @@ jobs:
       - uses: actions/upload-artifact@v4
         with: { name: PDF-Reducer-ULTRA-V6-debug-APK, path: android/app/build/outputs/apk/debug/app-debug.apk }
   device:
-    if: github.event_name == 'workflow_dispatch'
+    if: github.event_name == 'workflow_dispatch' || (github.event_name == 'push' && startsWith(github.ref, 'refs/heads/arena/'))
     runs-on: ubuntu-24.04
     timeout-minutes: 45
     steps:
@@ -76,3 +76,18 @@ jobs:
           arch: x86_64
           disable-animations: true
           script: cd android && ./gradlew --no-daemon :app:connectedDebugAndroidTest
+      - name: Report executed device tests (a skipped WebView smoke is not a pass)
+        if: always()
+        run: |
+          python3 - <<'PYTHON'
+          import pathlib, xml.etree.ElementTree as ET
+          files=list(pathlib.Path('android/app/build/outputs/androidTest-results/connected').rglob('TEST-*.xml'))
+          if not files: print('::warning::No emulator test report was produced.')
+          for f in files:
+              for t in ET.parse(f).iter('testcase'):
+                  state='SKIPPED' if t.find('skipped') is not None else 'FAILED' if t.find('failure') is not None or t.find('error') is not None else 'PASSED'
+                  print(f"::notice::Android {state}: {t.get('classname')}.{t.get('name')}")
+          PYTHON
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with: { name: V6-emulator-test-reports, path: android/app/build/outputs/androidTest-results/connected/, if-no-files-found: ignore }

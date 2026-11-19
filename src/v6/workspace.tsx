@@ -359,6 +359,8 @@ function useWorkspaceModel() {
   };
   const importFiles = (files: File[]) =>
     guard('Inspecting documents', async (a) => {
+      if (!ready)
+        throw Error('The local library is still opening. Try the import again in a moment.');
       validateSelection(files);
       capacity(files);
       const items = [];

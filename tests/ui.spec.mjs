@@ -368,6 +368,13 @@ for (const [w, h, layout] of [
     await expect(p.locator('.page-controls b')).toHaveText('2');
     await btn(p, 'Full-screen preview').click();
     await expect(p.locator('.preview-toolbar')).toContainText('Page 2 of 5');
+    await expect
+      .poll(() =>
+        p
+          .getByRole('dialog')
+          .evaluate((e) => e.clientWidth >= innerWidth - 2 && e.clientHeight >= innerHeight - 2),
+      )
+      .toBe(true);
     await expect(p.locator('.render-loading')).toHaveCount(0);
     expect(await overflow(p)).toBe(true);
     await close(p);
