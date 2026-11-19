@@ -67,15 +67,20 @@ jobs:
       - name: Select the newest stable Google APIs image for modern WebView tests
         id: image
         run: |
+          echo "STUDIO_BUILD_JAVA=$JAVA_HOME" >> "$GITHUB_ENV"
+          echo "STUDIO_SDK_JAVA=$JAVA_HOME_21_X64" >> "$GITHUB_ENV"
           export JAVA_HOME="$JAVA_HOME_21_X64"
           "$ANDROID_HOME/cmdline-tools/latest/bin/sdkmanager" --channel=0 --list > "$RUNNER_TEMP/available-sdk-images.txt"
           python3 - <<'PYTHON'
           import os, pathlib, re
           listing=(pathlib.Path(os.environ['RUNNER_TEMP'])/'available-sdk-images.txt').read_text()
-          levels=[int(x) for x in re.findall(r'^\s*system-images;android-(\d+);google_apis;x86_64\s*\|',listing,re.M) if int(x)>=36]
-          level=max(levels,default=36)
-          with open(os.environ['GITHUB_OUTPUT'],'a') as f: print(f'api={level}',file=f)
-          print(f'::notice::Testing Google APIs x86_64 image at API {level}; app compile/target SDK stays 36.')
+          # Recent packages use dotted API IDs and may have a 16 KiB image tag.
+          images=set(re.findall(r'system-images;android-(\d+(?:\.\d+)?);(google_apis(?:_playstore)?(?:_ps16k)?);x86_64(?=\s|\|)',listing))
+          images=[(v,t) for v,t in images if int(v.split('.')[0])>=36]
+          if not images: raise SystemExit('No compatible stable x86_64 system image in the SDK list.')
+          level,tag=max(images,key=lambda a:(tuple(map(int,a[0].split('.'))),a[1]=='google_apis', 'playstore' not in a[1]))
+          with open(os.environ['GITHUB_OUTPUT'],'a') as f: print(f'api={level}\ntag={tag}',file=f)
+          print(f'::notice::Selected system-images;android-{level};{tag};x86_64 from the stable SDK channel. Build platform remains API 36.')
           PYTHON
       - name: Enable KVM
         run: |
@@ -83,12 +88,15 @@ jobs:
           sudo udevadm control --reload-rules
           sudo udevadm trigger --name-match=kvm
       - uses: reactivecircus/android-emulator-runner@v2
+        env:
+          JAVA_HOME: ${{ env.STUDIO_SDK_JAVA }}
         with:
-          api-level: ${{ steps.image.outputs.api }}
-          target: google_apis
+          api-level: 36
+          system-image-api-level: ${{ steps.image.outputs.api }}
+          target: ${{ steps.image.outputs.tag }}
           arch: x86_64
           disable-animations: true
-          script: cd android && ./gradlew --no-daemon :app:connectedDebugAndroidTest -Pandroid.testInstrumentationRunnerArguments.exerciseWindows=true
+          script: bash scripts/verify-device.sh
       - name: Report executed device tests (a skipped WebView smoke is not a pass)
         if: always()
         run: |
