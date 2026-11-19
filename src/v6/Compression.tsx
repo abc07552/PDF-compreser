@@ -1,4 +1,4 @@
-import { useEffect, useId, useState } from 'react';
+import { useId } from 'react';
 import {
   History,
   Inbox,
@@ -194,10 +194,13 @@ export function Compression() {
     r = d?.out?.report,
     unit = w.prefs.unit,
     u = unit === 'MB' ? MB : 1024;
-  const [draft, setDraft] = useState('');
-  useEffect(() => {
-    setDraft(s.target ? String(Number((s.target / u).toFixed(10))) : '');
-  }, [s.target, u]);
+  // Derive the display in the same render as the unit. Never briefly show KB as MB.
+  const draft =
+    w.targetInput?.unit === unit && w.targetInput.bytes === s.target
+      ? w.targetInput.raw
+      : s.target
+        ? String(Number((s.target / u).toFixed(10)))
+        : '';
   const valid =
     draft === '' ||
     (Number.isFinite(+draft) &&
@@ -266,15 +269,16 @@ export function Compression() {
                 max={(1000 * MB) / u}
                 value={draft}
                 placeholder="Auto"
-                onChange={(e) => {
-                  setDraft(e.target.value);
-                  const b = Math.round(+e.target.value * u);
-                  if (!e.target.value || (b >= 1024 && b <= 1000 * MB)) w.settings({ target: b });
-                }}
+                onChange={(e) => w.enterTarget(e.target.value)}
               />
               <div className="unit-toggle">
                 {(['KB', 'MB'] as const).map((k) => (
-                  <button key={k} aria-pressed={unit === k} onClick={() => w.pref({ unit: k })}>
+                  <button
+                    key={k}
+                    disabled={!valid}
+                    aria-pressed={unit === k}
+                    onClick={() => w.pref({ unit: k })}
+                  >
                     {k}
                   </button>
                 ))}

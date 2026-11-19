@@ -64,7 +64,7 @@ jobs:
         with: { distribution: temurin, java-version: '17' }
       - uses: gradle/actions/setup-gradle@v4
       - run: npm ci && npm run android:sync
-      - name: Select the newest stable Google APIs image for modern WebView tests
+      - name: Select a stable Google APIs image compatible with hosted KVM
         id: image
         run: |
           echo "STUDIO_BUILD_JAVA=$JAVA_HOME" >> "$GITHUB_ENV"
@@ -76,9 +76,11 @@ jobs:
           listing=(pathlib.Path(os.environ['RUNNER_TEMP'])/'available-sdk-images.txt').read_text()
           # Recent packages use dotted API IDs and may have a 16 KiB image tag.
           images=set(re.findall(r'system-images;android-(\d+(?:\.\d+)?);(google_apis(?:_playstore)?(?:_ps16k)?);x86_64(?=\s|\|)',listing))
-          images=[(v,t) for v,t in images if int(v.split('.')[0])>=36]
-          if not images: raise SystemExit('No compatible stable x86_64 system image in the SDK list.')
-          level,tag=max(images,key=lambda a:(tuple(map(int,a[0].split('.'))),a[1]=='google_apis', 'playstore' not in a[1]))
+          # The 37.2 ps16k-only image did not boot on hosted KVM. Do not
+          # substitute a skipped UI test for a pass or lower the app's WebView floor.
+          images=[(v,t) for v,t in images if int(v.split('.')[0])>=36 and t=='google_apis']
+          if not images: raise SystemExit('No standard stable Google APIs x86_64 image is available.')
+          level,tag=max(images,key=lambda a:tuple(map(int,a[0].split('.'))))
           with open(os.environ['GITHUB_OUTPUT'],'a') as f: print(f'api={level}\ntag={tag}',file=f)
           print(f'::notice::Selected system-images;android-{level};{tag};x86_64 from the stable SDK channel. Build platform remains API 36.')
           PYTHON

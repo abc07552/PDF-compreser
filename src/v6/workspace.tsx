@@ -94,6 +94,11 @@ function useWorkspaceModel() {
     [id, setId] = useState('seed-alpine'),
     [ready, setReady] = useState(false),
     [prefs, setPrefs] = useState<Preferences>(getPrefs),
+    [targetInput, setTargetInput] = useState<{
+      unit: 'KB' | 'MB';
+      raw: string;
+      bytes: number;
+    } | null>(null),
     [acts, setActs] = useState<Activity[]>([]),
     [route, setRoute] = useState<Route>(getRoute),
     [edition, setEdition] = useState<Edition>(getEdition),
@@ -203,9 +208,22 @@ function useWorkspaceModel() {
     document.documentElement.dataset.theme = prefs.theme;
     setPreference('ultra-prefs', JSON.stringify(prefs));
   }, [prefs]);
-  const pref = (v: Partial<Preferences>) => setPrefs((p) => ({ ...p, ...v }));
-  const settings = (v: Partial<Settings>) =>
+  const pref = (v: Partial<Preferences>) => {
+    if (v.unit || v.settings) setTargetInput(null);
+    setPrefs((p) => ({ ...p, ...v }));
+  };
+  const settings = (v: Partial<Settings>) => {
+    if (v.target !== undefined) setTargetInput(null);
     setPrefs((p) => ({ ...p, settings: { ...p.settings, ...v } }));
+  };
+  const enterTarget = (value: string) => {
+    const unit = prefs.unit,
+      bytes = Math.round(+value * (unit === 'MB' ? 1024 * 1024 : 1024));
+    const valid =
+      !value || (Number.isFinite(bytes) && bytes >= 1024 && bytes <= 1000 * 1024 * 1024);
+    if (valid) settings({ target: bytes });
+    setTargetInput({ unit, raw: value, bytes: valid ? bytes : prefs.settings.target });
+  };
   const go = (r: Route) => {
     location.hash = '/' + r;
     setRoute(r);
@@ -642,6 +660,8 @@ function useWorkspaceModel() {
     prefs,
     pref,
     settings,
+    targetInput,
+    enterTarget,
     acts,
     record,
     job,
